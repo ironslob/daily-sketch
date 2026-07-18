@@ -2,7 +2,7 @@
 
 Native iOS creative journal with a FastAPI backend. Every user receives the same three-word Daily Prompt; guests can sketch before authenticating.
 
-This repository is a monorepo. Phase 4 delivers today’s Daily Prompt and the Home experience on top of Phase 3 profile/preferences.
+This repository is a monorepo. Phase 5 delivers Sketch Sessions and the Timer Selection / Active Sketch flow on top of Phase 4’s Daily Prompt and Home experience.
 
 ## Prerequisites
 
@@ -49,6 +49,17 @@ make ios-build
 | `ios/` | SwiftUI app (`DailySketch`) |
 | `spec/` | Product, design, architecture, implementation, infrastructure |
 
+## Phase 5 — Sketch Sessions and Timer Flow
+
+- **Contract (authenticated):**
+  - `POST /api/v1/sketch-sessions` — start a session (`201`). Optional `Idempotency-Key` header for safe retries.
+  - `GET /api/v1/sketch-sessions/{session_id}` — fetch an owned session (`session_not_found` for missing/non-owner).
+  - `POST /api/v1/sketch-sessions/{session_id}/events` — record lifecycle events (`paused`, `resumed`, `timer_completed`, `finished_early`, `photo_step_reached`, `abandoned`, …).
+  - `POST /api/v1/sketch-sessions/{session_id}/abandon` — abandon (idempotent when already abandoned).
+- **Database:** `sketch_sessions` + `sketch_session_events` (migration `0005_sketch_sessions`); `idempotency_keys` (migration `0006_idempotency_keys`). Reuses existing `timer_mode` enum; durations `{60,180,300,600}`.
+- **iOS Timer Flow:** Timer Selection sheet (1/3/5/10 min + No timer, Remember off by default). Remembered choice bypasses the sheet (guest via UserDefaults; authenticated via preferences). Active Sketch supports countdown, pause/resume, finish, cancel confirmation, and recovers after interruption. Guests keep sessions local-only. Authenticated session-create/event failures continue the timer locally and mark sync pending.
+- **Out of Phase 5:** Camera / photo capture / upload (Phase 6–7). Finish ends at a “photo coming soon” placeholder with the session marked `ready_for_photo`.
+
 ## Phase 4 — Daily Prompt and Home experience
 
 - **Contract (public; guest + authenticated):**
@@ -58,8 +69,8 @@ make ios-build
 - **Database:** `daily_prompts` table (migration `0004_daily_prompts`) with `prompt_status` enum (`draft|published|withdrawn`). One prompt per `prompt_date`.
 - **Prompt Date:** Global boundary at **00:00 UTC** (see `spec/decisions/0005-global-prompt-date-boundary.md`). All clients see the same current Prompt.
 - **Seed:** `make seed` runs `python -m app.seeds.prompts --days 30` to deterministically upsert today plus 30 future published prompts from `backend/app/data/prompt_words.txt`.
-- **iOS Home:** Three-word `PromptGroup`, Start Sketch (placeholder until Phase 5 timer flow), and Community Sketches with independent prompt/feed loading, empty, and error/retry states. Feed failure never blocks the prompt or Start Sketch.
-- **Out of Phase 4:** Timer Selection / Sketch Sessions (Phase 5), SubmissionCard image feed / infinite scroll (Phase 8).
+- **iOS Home:** Three-word `PromptGroup`, Start Sketch → Phase 5 timer/session flow, and Community Sketches with independent prompt/feed loading, empty, and error/retry states. Feed failure never blocks the prompt or Start Sketch.
+- **Out of Phase 4:** SubmissionCard image feed / infinite scroll (Phase 8).
 
 ## Phase 3 — Profile completion and preferences
 

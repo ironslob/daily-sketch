@@ -10,6 +10,9 @@ final class AppDependencies {
     let preferencesService: any PreferencesServing
     let profileUpdater: any ProfileUpdating
     let promptRepository: PromptRepository
+    let sketchSessionRepository: any SketchSessionServing
+    let activeSessionStore: any ActiveSessionStoring
+    let guestTimerPreferenceStore: any GuestTimerPreferenceStoring
 
     init(
         environment: AppEnvironment,
@@ -18,7 +21,10 @@ final class AppDependencies {
         descopeAuthService: DescopeAuthService? = nil,
         preferencesService: any PreferencesServing,
         profileUpdater: any ProfileUpdating,
-        promptRepository: PromptRepository
+        promptRepository: PromptRepository,
+        sketchSessionRepository: any SketchSessionServing,
+        activeSessionStore: any ActiveSessionStoring,
+        guestTimerPreferenceStore: any GuestTimerPreferenceStoring
     ) {
         self.environment = environment
         self.navigation = navigation
@@ -27,6 +33,20 @@ final class AppDependencies {
         self.preferencesService = preferencesService
         self.profileUpdater = profileUpdater
         self.promptRepository = promptRepository
+        self.sketchSessionRepository = sketchSessionRepository
+        self.activeSessionStore = activeSessionStore
+        self.guestTimerPreferenceStore = guestTimerPreferenceStore
+    }
+
+    @MainActor
+    func makeSketchFlowViewModel() -> SketchFlowViewModel {
+        SketchFlowViewModel(
+            auth: auth,
+            preferencesService: preferencesService,
+            guestTimerStore: guestTimerPreferenceStore,
+            activeSessionStore: activeSessionStore,
+            sessionService: sketchSessionRepository
+        )
     }
 
     @MainActor
@@ -34,6 +54,9 @@ final class AppDependencies {
         let environment = AppEnvironment.current
         let repository = MeRepository(baseURL: environment.apiBaseURL)
         let promptRepository = PromptRepository(baseURL: environment.apiBaseURL)
+        let sketchSessionRepository = SketchSessionRepository(baseURL: environment.apiBaseURL)
+        let activeSessionStore = ActiveSessionStore()
+        let guestTimerPreferenceStore = GuestTimerPreferenceStore()
         let projectID = environment.descopeProjectID
 
         if projectID == DescopeConfig.placeholderProjectID || projectID.isEmpty {
@@ -49,7 +72,10 @@ final class AppDependencies {
                 descopeAuthService: nil,
                 preferencesService: repository,
                 profileUpdater: repository,
-                promptRepository: promptRepository
+                promptRepository: promptRepository,
+                sketchSessionRepository: sketchSessionRepository,
+                activeSessionStore: activeSessionStore,
+                guestTimerPreferenceStore: guestTimerPreferenceStore
             )
         }
 
@@ -65,7 +91,10 @@ final class AppDependencies {
             descopeAuthService: descope,
             preferencesService: repository,
             profileUpdater: repository,
-            promptRepository: promptRepository
+            promptRepository: promptRepository,
+            sketchSessionRepository: sketchSessionRepository,
+            activeSessionStore: activeSessionStore,
+            guestTimerPreferenceStore: guestTimerPreferenceStore
         )
     }
 }

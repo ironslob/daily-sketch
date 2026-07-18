@@ -10,13 +10,13 @@ from sqlalchemy import Boolean, DateTime, Enum, ForeignKey, Integer, Text, Time,
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.session import Base
+from app.models.enums import TimerMode, timer_mode_sa
 
-
-class TimerMode(str, enum.Enum):
-    """Remembered Sketch Session timer mode."""
-
-    countdown = "countdown"
-    no_timer = "no_timer"
+__all__ = [
+    "AppearancePreference",
+    "TimerMode",
+    "UserPreferences",
+]
 
 
 class AppearancePreference(str, enum.Enum):
@@ -42,7 +42,7 @@ class UserPreferences(Base):
     timezone: Mapped[str] = mapped_column(Text, nullable=False, default="UTC")
     remember_timer_option: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     remembered_timer_mode: Mapped[TimerMode | None] = mapped_column(
-        Enum(TimerMode, name="timer_mode", native_enum=True),
+        timer_mode_sa,
         nullable=True,
     )
     remembered_timer_seconds: Mapped[int | None] = mapped_column(Integer, nullable=True)

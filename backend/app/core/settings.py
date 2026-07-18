@@ -22,6 +22,10 @@ class Settings(BaseSettings):
     commit_sha: str = Field(default="unknown", alias="COMMIT_SHA")
     request_timeout_seconds: int = Field(default=30, alias="REQUEST_TIMEOUT_SECONDS")
     prompt_date_timezone: str = Field(default="UTC", alias="PROMPT_DATE_TIMEZONE")
+    sketch_session_expiry_seconds: int = Field(
+        default=86400,
+        alias="SKETCH_SESSION_EXPIRY_SECONDS",
+    )
 
     database_url: str = Field(
         default="postgresql+asyncpg://dailysketch:dailysketch@localhost:5432/dailysketch",
@@ -48,6 +52,13 @@ class Settings(BaseSettings):
     def validate_request_timeout(cls, value: int) -> int:
         if value < 1:
             raise ValueError("REQUEST_TIMEOUT_SECONDS must be at least 1")
+        return value
+
+    @field_validator("sketch_session_expiry_seconds")
+    @classmethod
+    def validate_sketch_session_expiry(cls, value: int) -> int:
+        if value < 60:
+            raise ValueError("SKETCH_SESSION_EXPIRY_SECONDS must be at least 60")
         return value
 
     @field_validator("prompt_date_timezone")

@@ -9,6 +9,7 @@ DailySketchAPI/Classes/OpenAPIs/APIs/FeedAPI.swift
 DailySketchAPI/Classes/OpenAPIs/APIs/HealthAPI.swift
 DailySketchAPI/Classes/OpenAPIs/APIs/MeAPI.swift
 DailySketchAPI/Classes/OpenAPIs/APIs/PromptsAPI.swift
+DailySketchAPI/Classes/OpenAPIs/APIs/SketchSessionsAPI.swift
 DailySketchAPI/Classes/OpenAPIs/APIs/UsersAPI.swift
 DailySketchAPI/Classes/OpenAPIs/CodableHelper.swift
 DailySketchAPI/Classes/OpenAPIs/Configuration.swift
@@ -17,6 +18,7 @@ DailySketchAPI/Classes/OpenAPIs/JSONDataEncoding.swift
 DailySketchAPI/Classes/OpenAPIs/JSONEncodingHelper.swift
 DailySketchAPI/Classes/OpenAPIs/Models.swift
 DailySketchAPI/Classes/OpenAPIs/Models/AppearancePreference.swift
+DailySketchAPI/Classes/OpenAPIs/Models/CreateSketchSessionRequest.swift
 DailySketchAPI/Classes/OpenAPIs/Models/CurrentUser.swift
 DailySketchAPI/Classes/OpenAPIs/Models/CursorPage.swift
 DailySketchAPI/Classes/OpenAPIs/Models/DailyPrompt.swift
@@ -32,6 +34,10 @@ DailySketchAPI/Classes/OpenAPIs/Models/PreferencesUpdate.swift
 DailySketchAPI/Classes/OpenAPIs/Models/PromptStatus.swift
 DailySketchAPI/Classes/OpenAPIs/Models/PublicUser.swift
 DailySketchAPI/Classes/OpenAPIs/Models/RecentFeed.swift
+DailySketchAPI/Classes/OpenAPIs/Models/SketchSession.swift
+DailySketchAPI/Classes/OpenAPIs/Models/SketchSessionEventRequest.swift
+DailySketchAPI/Classes/OpenAPIs/Models/SketchSessionEventType.swift
+DailySketchAPI/Classes/OpenAPIs/Models/SketchSessionStatus.swift
 DailySketchAPI/Classes/OpenAPIs/Models/TimerMode.swift
 DailySketchAPI/Classes/OpenAPIs/Models/UpdateMeRequest.swift
 DailySketchAPI/Classes/OpenAPIs/Models/UserStatus.swift
@@ -42,6 +48,7 @@ DailySketchAPI/Classes/OpenAPIs/Validation.swift
 Package.swift
 README.md
 docs/AppearancePreference.md
+docs/CreateSketchSessionRequest.md
 docs/CurrentUser.md
 docs/CursorPage.md
 docs/DailyPrompt.md
@@ -61,6 +68,11 @@ docs/PromptStatus.md
 docs/PromptsAPI.md
 docs/PublicUser.md
 docs/RecentFeed.md
+docs/SketchSession.md
+docs/SketchSessionEventRequest.md
+docs/SketchSessionEventType.md
+docs/SketchSessionStatus.md
+docs/SketchSessionsAPI.md
 docs/TimerMode.md
 docs/UpdateMeRequest.md
 docs/UserStatus.md

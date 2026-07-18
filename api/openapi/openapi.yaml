@@ -411,6 +411,252 @@ paths:
                 next_cursor: null
         "500":
           $ref: "#/components/responses/InternalError"
+  /api/v1/sketch-sessions:
+    post:
+      operationId: createSketchSession
+      tags:
+        - sketch-sessions
+      summary: Start a Sketch Session
+      description: |
+        Creates an authenticated Sketch Session for a published Daily Prompt.
+        Guests persist sessions only on device and must not call this endpoint.
+        Pass an `Idempotency-Key` header to safely retry create without
+        duplicating sessions.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateSketchSessionRequest"
+            example:
+              prompt_id: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+              timer_mode: countdown
+              selected_timer_seconds: 300
+              client_timezone: Europe/London
+              client_session_id: local-session-001
+      responses:
+        "201":
+          description: Sketch Session created
+          headers:
+            X-Request-ID:
+              $ref: "#/components/headers/RequestId"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SketchSession"
+              example:
+                id: b2c3d4e5-f6a7-8901-bcde-f12345678901
+                user_id: f7d7c950-2892-4b6c-9300-ef6c5cbcb2d1
+                prompt_id: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+                timer_mode: countdown
+                selected_timer_seconds: 300
+                status: active
+                started_at: "2026-07-18T20:00:00Z"
+                paused_total_seconds: 0
+                timer_completed_at: null
+                finish_requested_at: null
+                photo_step_reached_at: null
+                upload_started_at: null
+                upload_completed_at: null
+                completed_at: null
+                abandoned_at: null
+                created_at: "2026-07-18T20:00:00Z"
+                updated_at: "2026-07-18T20:00:00Z"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+        "500":
+          $ref: "#/components/responses/InternalError"
+  /api/v1/sketch-sessions/{session_id}:
+    get:
+      operationId: getSketchSession
+      tags:
+        - sketch-sessions
+      summary: Get a Sketch Session
+      description: |
+        Returns a Sketch Session owned by the authenticated user.
+        Non-owner and missing sessions both return `session_not_found`.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: session_id
+          in: path
+          required: true
+          description: Sketch Session UUID.
+          schema:
+            $ref: "#/components/schemas/UUID"
+          example: b2c3d4e5-f6a7-8901-bcde-f12345678901
+      responses:
+        "200":
+          description: Sketch Session
+          headers:
+            X-Request-ID:
+              $ref: "#/components/headers/RequestId"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SketchSession"
+              example:
+                id: b2c3d4e5-f6a7-8901-bcde-f12345678901
+                user_id: f7d7c950-2892-4b6c-9300-ef6c5cbcb2d1
+                prompt_id: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+                timer_mode: countdown
+                selected_timer_seconds: 300
+                status: active
+                started_at: "2026-07-18T20:00:00Z"
+                paused_total_seconds: 0
+                timer_completed_at: null
+                finish_requested_at: null
+                photo_step_reached_at: null
+                upload_started_at: null
+                upload_completed_at: null
+                completed_at: null
+                abandoned_at: null
+                created_at: "2026-07-18T20:00:00Z"
+                updated_at: "2026-07-18T20:00:00Z"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalError"
+  /api/v1/sketch-sessions/{session_id}/events:
+    post:
+      operationId: postSketchSessionEvent
+      tags:
+        - sketch-sessions
+      summary: Record a Sketch Session lifecycle event
+      description: |
+        Appends a lifecycle event and updates denormalised session timestamps
+        and status when the transition is valid.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: session_id
+          in: path
+          required: true
+          description: Sketch Session UUID.
+          schema:
+            $ref: "#/components/schemas/UUID"
+          example: b2c3d4e5-f6a7-8901-bcde-f12345678901
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SketchSessionEventRequest"
+            example:
+              event_type: paused
+              client_occurred_at: "2026-07-18T20:01:00Z"
+              metadata: {}
+      responses:
+        "200":
+          description: Updated Sketch Session after the event
+          headers:
+            X-Request-ID:
+              $ref: "#/components/headers/RequestId"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SketchSession"
+              example:
+                id: b2c3d4e5-f6a7-8901-bcde-f12345678901
+                user_id: f7d7c950-2892-4b6c-9300-ef6c5cbcb2d1
+                prompt_id: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+                timer_mode: countdown
+                selected_timer_seconds: 300
+                status: paused
+                started_at: "2026-07-18T20:00:00Z"
+                paused_total_seconds: 0
+                timer_completed_at: null
+                finish_requested_at: null
+                photo_step_reached_at: null
+                upload_started_at: null
+                upload_completed_at: null
+                completed_at: null
+                abandoned_at: null
+                created_at: "2026-07-18T20:00:00Z"
+                updated_at: "2026-07-18T20:01:00Z"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+        "500":
+          $ref: "#/components/responses/InternalError"
+  /api/v1/sketch-sessions/{session_id}/abandon:
+    post:
+      operationId: abandonSketchSession
+      tags:
+        - sketch-sessions
+      summary: Abandon a Sketch Session
+      description: |
+        Marks the session abandoned. Calling abandon on an already-abandoned
+        session is idempotent and returns the existing session.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: session_id
+          in: path
+          required: true
+          description: Sketch Session UUID.
+          schema:
+            $ref: "#/components/schemas/UUID"
+          example: b2c3d4e5-f6a7-8901-bcde-f12345678901
+      responses:
+        "200":
+          description: Abandoned Sketch Session
+          headers:
+            X-Request-ID:
+              $ref: "#/components/headers/RequestId"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SketchSession"
+              example:
+                id: b2c3d4e5-f6a7-8901-bcde-f12345678901
+                user_id: f7d7c950-2892-4b6c-9300-ef6c5cbcb2d1
+                prompt_id: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+                timer_mode: countdown
+                selected_timer_seconds: 300
+                status: abandoned
+                started_at: "2026-07-18T20:00:00Z"
+                paused_total_seconds: 0
+                timer_completed_at: null
+                finish_requested_at: null
+                photo_step_reached_at: null
+                upload_started_at: null
+                upload_completed_at: null
+                completed_at: null
+                abandoned_at: "2026-07-18T20:05:00Z"
+                created_at: "2026-07-18T20:00:00Z"
+                updated_at: "2026-07-18T20:05:00Z"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+        "500":
+          $ref: "#/components/responses/InternalError"
 components:
   securitySchemes:
     bearerAuth:
@@ -431,6 +677,20 @@ components:
         type: string
         format: uuid
       example: f7d7c950-2892-4b6c-9300-ef6c5cbcb2d1
+  parameters:
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: false
+      description: |
+        Client-generated key that makes a write operation safely retryable.
+        Replaying the same key with the same request body returns the original
+        response. Replaying with a different body returns `idempotency_key_conflict`.
+      schema:
+        type: string
+        minLength: 1
+        maxLength: 255
+      example: sketch-session-create-7f3a9c2e
   responses:
     Unauthenticated:
       description: Missing or invalid bearer token
@@ -490,12 +750,23 @@ components:
         application/json:
           schema:
             $ref: "#/components/schemas/Error"
-          example:
-            error:
-              code: username_taken
-              message: That username is already taken.
-              details: {}
-              request_id: f7d7c950-2892-4b6c-9300-ef6c5cbcb2d1
+          examples:
+            username_taken:
+              summary: Username already taken
+              value:
+                error:
+                  code: username_taken
+                  message: That username is already taken.
+                  details: {}
+                  request_id: f7d7c950-2892-4b6c-9300-ef6c5cbcb2d1
+            idempotency_key_conflict:
+              summary: Idempotency key reused with a different body
+              value:
+                error:
+                  code: idempotency_key_conflict
+                  message: This idempotency key was already used with a different request.
+                  details: {}
+                  request_id: f7d7c950-2892-4b6c-9300-ef6c5cbcb2d1
     NotFound:
       description: Requested resource was not found
       headers:
@@ -520,6 +791,14 @@ components:
                 error:
                   code: prompt_not_found
                   message: Today's prompt is not available yet.
+                  details: {}
+                  request_id: f7d7c950-2892-4b6c-9300-ef6c5cbcb2d1
+            session_not_found:
+              summary: Sketch Session not found
+              value:
+                error:
+                  code: session_not_found
+                  message: The requested sketch session could not be found.
                   details: {}
                   request_id: f7d7c950-2892-4b6c-9300-ef6c5cbcb2d1
     ValidationError:
@@ -554,6 +833,22 @@ components:
                 error:
                   code: invalid_timer_preference
                   message: Timer preference mode and seconds are inconsistent.
+                  details: {}
+                  request_id: f7d7c950-2892-4b6c-9300-ef6c5cbcb2d1
+            invalid_timer_selection:
+              summary: Invalid Sketch Session timer selection
+              value:
+                error:
+                  code: invalid_timer_selection
+                  message: Timer mode and selected seconds are inconsistent.
+                  details: {}
+                  request_id: f7d7c950-2892-4b6c-9300-ef6c5cbcb2d1
+            invalid_session_transition:
+              summary: Invalid Sketch Session lifecycle transition
+              value:
+                error:
+                  code: invalid_session_transition
+                  message: That lifecycle event is not valid for the current session state.
                   details: {}
                   request_id: f7d7c950-2892-4b6c-9300-ef6c5cbcb2d1
             validation_error:
@@ -1014,6 +1309,159 @@ components:
             - "null"
           description: Opaque cursor for the next page, or null when no further pages exist.
           example: null
+    SketchSessionStatus:
+      type: string
+      description: Sketch Session lifecycle status.
+      enum:
+        - active
+        - paused
+        - ready_for_photo
+        - uploading
+        - completed
+        - abandoned
+        - expired
+    SketchSessionEventType:
+      type: string
+      description: Sketch Session lifecycle event type.
+      enum:
+        - started
+        - paused
+        - resumed
+        - timer_completed
+        - finished_early
+        - photo_step_reached
+        - upload_started
+        - upload_completed
+        - submission_created
+        - abandoned
+    CreateSketchSessionRequest:
+      type: object
+      description: |
+        Authenticated Sketch Session create payload.
+        Countdown mode requires selected_timer_seconds in {60, 180, 300, 600}.
+        No-timer mode requires selected_timer_seconds to be null.
+      additionalProperties: false
+      required:
+        - prompt_id
+        - timer_mode
+      properties:
+        prompt_id:
+          $ref: "#/components/schemas/UUID"
+        timer_mode:
+          $ref: "#/components/schemas/TimerMode"
+        selected_timer_seconds:
+          type:
+            - integer
+            - "null"
+          description: Countdown duration in seconds, or null for no_timer.
+          example: 300
+        client_timezone:
+          type:
+            - string
+            - "null"
+          description: Optional IANA timezone reported by the client for analytics.
+          example: Europe/London
+        client_session_id:
+          type:
+            - string
+            - "null"
+          description: Optional local session identifier for recovery correlation.
+          maxLength: 128
+          example: local-session-001
+    SketchSession:
+      type: object
+      description: Authenticated Sketch Session record.
+      required:
+        - id
+        - user_id
+        - prompt_id
+        - timer_mode
+        - selected_timer_seconds
+        - status
+        - started_at
+        - paused_total_seconds
+        - timer_completed_at
+        - finish_requested_at
+        - photo_step_reached_at
+        - upload_started_at
+        - upload_completed_at
+        - completed_at
+        - abandoned_at
+        - created_at
+        - updated_at
+      properties:
+        id:
+          $ref: "#/components/schemas/UUID"
+        user_id:
+          $ref: "#/components/schemas/UUID"
+        prompt_id:
+          $ref: "#/components/schemas/UUID"
+        timer_mode:
+          $ref: "#/components/schemas/TimerMode"
+        selected_timer_seconds:
+          type:
+            - integer
+            - "null"
+          example: 300
+        status:
+          $ref: "#/components/schemas/SketchSessionStatus"
+        started_at:
+          $ref: "#/components/schemas/Timestamp"
+        paused_total_seconds:
+          type: integer
+          minimum: 0
+          example: 0
+        timer_completed_at:
+          oneOf:
+            - $ref: "#/components/schemas/Timestamp"
+            - type: "null"
+        finish_requested_at:
+          oneOf:
+            - $ref: "#/components/schemas/Timestamp"
+            - type: "null"
+        photo_step_reached_at:
+          oneOf:
+            - $ref: "#/components/schemas/Timestamp"
+            - type: "null"
+        upload_started_at:
+          oneOf:
+            - $ref: "#/components/schemas/Timestamp"
+            - type: "null"
+        upload_completed_at:
+          oneOf:
+            - $ref: "#/components/schemas/Timestamp"
+            - type: "null"
+        completed_at:
+          oneOf:
+            - $ref: "#/components/schemas/Timestamp"
+            - type: "null"
+        abandoned_at:
+          oneOf:
+            - $ref: "#/components/schemas/Timestamp"
+            - type: "null"
+        created_at:
+          $ref: "#/components/schemas/Timestamp"
+        updated_at:
+          $ref: "#/components/schemas/Timestamp"
+    SketchSessionEventRequest:
+      type: object
+      description: Client lifecycle event recorded against a Sketch Session.
+      additionalProperties: false
+      required:
+        - event_type
+      properties:
+        event_type:
+          $ref: "#/components/schemas/SketchSessionEventType"
+        client_occurred_at:
+          oneOf:
+            - $ref: "#/components/schemas/Timestamp"
+            - type: "null"
+          description: Optional client-side occurrence time.
+        metadata:
+          type: object
+          additionalProperties: true
+          description: Optional structured metadata for the event.
+          default: {}
 tags:
   - name: health
     description: Process health probes
@@ -1025,3 +1473,5 @@ tags:
     description: Shared Daily Prompt endpoints
   - name: feed
     description: Community feed endpoints
+  - name: sketch-sessions
+    description: Authenticated Sketch Session and timer lifecycle endpoints

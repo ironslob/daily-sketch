@@ -20,14 +20,19 @@ final class HomeViewModel {
     private(set) var promptState: HomePromptState = .loading
     private(set) var feedState: HomeFeedState = .loading
     private(set) var cachedPrompt: DailyPromptModel?
-    var showsStartSketchPlaceholder = false
 
     private let promptFetcher: any PromptFetching
     private let feedFetcher: any FeedFetching
+    let sketchFlow: SketchFlowViewModel
 
-    init(promptFetcher: any PromptFetching, feedFetcher: any FeedFetching) {
+    init(
+        promptFetcher: any PromptFetching,
+        feedFetcher: any FeedFetching,
+        sketchFlow: SketchFlowViewModel
+    ) {
         self.promptFetcher = promptFetcher
         self.feedFetcher = feedFetcher
+        self.sketchFlow = sketchFlow
     }
 
     var canStartSketch: Bool {
@@ -37,21 +42,23 @@ final class HomeViewModel {
         return false
     }
 
-    var promptWords: [String]? {
+    var loadedPrompt: DailyPromptModel? {
         if case .loaded(let prompt) = promptState {
-            return prompt.words
+            return prompt
         }
-        return cachedPrompt?.words
+        return cachedPrompt
+    }
+
+    var promptWords: [String]? {
+        loadedPrompt?.words
     }
 
     var promptAccessibilityLabel: String {
-        if case .loaded(let prompt) = promptState {
-            return prompt.accessibilityLabel
-        }
-        return cachedPrompt?.accessibilityLabel ?? "Today’s prompt is loading."
+        loadedPrompt?.accessibilityLabel ?? "Today’s prompt is loading."
     }
 
     func load() async {
+        sketchFlow.prepareOnAppear()
         async let promptLoad: Void = loadPrompt()
         async let feedLoad: Void = loadFeed()
         _ = await (promptLoad, feedLoad)
@@ -66,16 +73,11 @@ final class HomeViewModel {
     }
 
     func startSketch() {
-        guard canStartSketch else { return }
-        showsStartSketchPlaceholder = true
-    }
-
-    func dismissStartSketchPlaceholder() {
-        showsStartSketchPlaceholder = false
+        guard let prompt = loadedPrompt else { return }
+        sketchFlow.startSketch(prompt: prompt)
     }
 
     private func loadPrompt() async {
-        // Show cache immediately while refreshing when available.
         if let cachedPrompt {
             promptState = .loaded(cachedPrompt)
         } else {
@@ -87,7 +89,6 @@ final class HomeViewModel {
             cachedPrompt = prompt
             promptState = .loaded(prompt)
         } catch let error as PromptAPIError where error == .promptNotFound {
-            // Never invent a local prompt when the server has none.
             cachedPrompt = nil
             promptState = .missing
         } catch {
@@ -101,7 +102,6 @@ final class HomeViewModel {
         feedState = .loading
         do {
             _ = try await feedFetcher.fetchRecentFeed(cursor: nil, limit: 20)
-            // Phase 4 feed is empty until Submissions exist (Phase 7/8).
             feedState = .empty
         } catch {
             feedState = .failed("Couldn’t load community sketches. Check your connection and try again.")

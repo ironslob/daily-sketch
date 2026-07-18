@@ -19,7 +19,8 @@ struct HomeView: View {
             if viewModel == nil {
                 let model = HomeViewModel(
                     promptFetcher: dependencies.promptRepository,
-                    feedFetcher: dependencies.promptRepository
+                    feedFetcher: dependencies.promptRepository,
+                    sketchFlow: dependencies.makeSketchFlowViewModel()
                 )
                 viewModel = model
                 await model.load()
@@ -39,12 +40,30 @@ struct HomeView: View {
                     .font(AppTypography.bodyLarge)
                     .foregroundStyle(AppColors.textSecondary)
 
+                if model.sketchFlow.showsRecoveryBanner {
+                    recoveryBanner(model)
+                }
+
+                if model.sketchFlow.changeTimerHintVisible {
+                    changeTimerHint(model)
+                }
+
+                if let message = model.sketchFlow.syncBannerMessage {
+                    Text(message)
+                        .font(AppTypography.caption)
+                        .foregroundStyle(AppColors.textTertiary)
+                }
+
                 promptSection(model)
+
+                if model.sketchFlow.isCreatingSession {
+                    LoadingView(message: "Starting your sketch…")
+                }
 
                 PrimaryButton(
                     title: "Start Sketch",
                     action: { model.startSketch() },
-                    isDisabled: !model.canStartSketch
+                    isDisabled: !model.canStartSketch || model.sketchFlow.isCreatingSession
                 )
 
                 Text("Community Sketches")
@@ -56,18 +75,81 @@ struct HomeView: View {
             .padding(.horizontal, AppSpacing.screenHorizontal)
             .padding(.vertical, AppSpacing.lg)
         }
-        .alert(
-            "Sketch sessions are coming soon",
+        .sheet(
             isPresented: Binding(
-                get: { model.showsStartSketchPlaceholder },
-                set: { if !$0 { model.dismissStartSketchPlaceholder() } }
+                get: { model.sketchFlow.showsTimerSelection },
+                set: { if !$0 { model.sketchFlow.dismissTimerSelection() } }
             )
         ) {
-            Button("OK", role: .cancel) {
-                model.dismissStartSketchPlaceholder()
+            TimerSelectionView(
+                selectedOption: Binding(
+                    get: { model.sketchFlow.selectedTimerOption },
+                    set: { model.sketchFlow.selectedTimerOption = $0 }
+                ),
+                rememberChoice: Binding(
+                    get: { model.sketchFlow.rememberChoice },
+                    set: { model.sketchFlow.rememberChoice = $0 }
+                ),
+                onStart: {
+                    if let prompt = model.loadedPrompt {
+                        model.sketchFlow.confirmTimerSelection(prompt: prompt)
+                    }
+                },
+                onDismiss: { model.sketchFlow.dismissTimerSelection() },
+                isStarting: model.sketchFlow.isCreatingSession
+            )
+        }
+        .fullScreenCover(
+            isPresented: Binding(
+                get: { model.sketchFlow.showsActiveSession },
+                set: { if !$0 { model.sketchFlow.handleSessionEnded() } }
+            )
+        ) {
+            if let sessionModel = model.sketchFlow.sessionViewModel {
+                SketchSessionView(model: sessionModel)
             }
-        } message: {
-            Text("Timer selection and sketch sessions arrive in the next update. Your prompt is ready when you are.")
+        }
+    }
+
+    private func recoveryBanner(_ model: HomeViewModel) -> some View {
+        VStack(alignment: .leading, spacing: AppSpacing.sm) {
+            Text("You have a sketch in progress")
+                .font(AppTypography.headline)
+                .foregroundStyle(AppColors.textPrimary)
+            HStack(spacing: AppSpacing.contentGap) {
+                PrimaryButton(
+                    title: "Resume",
+                    action: {
+                        model.sketchFlow.resumeRecoverableSession { id in
+                            if let loaded = model.loadedPrompt, loaded.id == id {
+                                return loaded
+                            }
+                            return model.cachedPrompt
+                        }
+                    }
+                )
+                SecondaryButton(
+                    title: "Discard",
+                    action: { model.sketchFlow.discardRecoverableSession() }
+                )
+            }
+        }
+        .padding(AppSpacing.md)
+        .background(AppColors.surfaceSecondary)
+        .clipShape(RoundedRectangle(cornerRadius: AppRadii.large, style: .continuous))
+    }
+
+    private func changeTimerHint(_ model: HomeViewModel) -> some View {
+        HStack {
+            Text("Using your remembered timer.")
+                .font(AppTypography.bodySmall)
+                .foregroundStyle(AppColors.textSecondary)
+            Spacer()
+            Button("Change next time") {
+                model.sketchFlow.changeTimerNextTime()
+            }
+            .font(AppTypography.bodySmall)
+            .foregroundStyle(AppColors.primary)
         }
     }
 
