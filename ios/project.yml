@@ -17,6 +17,12 @@ settings:
 configs:
   Debug: debug
   Release: release
+packages:
+  DailySketchAPI:
+    path: ../api/generated/ios
+  DescopeKit:
+    url: https://github.com/descope/descope-swift
+    from: 0.9.0
 targets:
   DailySketch:
     type: application
@@ -28,9 +34,13 @@ targets:
       properties:
         API_BASE_URL: $(API_BASE_URL)
         APP_ENVIRONMENT: $(APP_ENVIRONMENT)
+        DESCOPE_PROJECT_ID: $(DESCOPE_PROJECT_ID)
     configFiles:
       Debug: Config/Debug.xcconfig
       Release: Config/Release.xcconfig
+    dependencies:
+      - package: DailySketchAPI
+      - package: DescopeKit
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.example.dailysketch.dev

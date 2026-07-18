@@ -74,6 +74,48 @@ paths:
                   storage_config: ok
         "500":
           $ref: "#/components/responses/InternalError"
+  /api/v1/me:
+    get:
+      operationId: getMe
+      tags:
+        - me
+      summary: Current authenticated user
+      description: |
+        Returns the local application user for the authenticated Descope subject.
+        On first successful authentication the backend provisions a local user
+        with an incomplete profile.
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Current user
+          headers:
+            X-Request-ID:
+              $ref: "#/components/headers/RequestId"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CurrentUser"
+              example:
+                id: f7d7c950-2892-4b6c-9300-ef6c5cbcb2d1
+                username: null
+                display_name: New sketcher
+                profile_completed: false
+                status: incomplete
+                preferences:
+                  notifications_enabled: false
+                  notification_time_local: null
+                  timezone: UTC
+                  remember_timer_option: false
+                  remembered_timer_mode: null
+                  remembered_timer_seconds: null
+                  appearance: system
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "500":
+          $ref: "#/components/responses/InternalError"
 components:
   securitySchemes:
     bearerAuth:
@@ -95,6 +137,47 @@ components:
         format: uuid
       example: f7d7c950-2892-4b6c-9300-ef6c5cbcb2d1
   responses:
+    Unauthenticated:
+      description: Missing or invalid bearer token
+      headers:
+        X-Request-ID:
+          $ref: "#/components/headers/RequestId"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          example:
+            error:
+              code: unauthenticated
+              message: Authentication is required.
+              details: {}
+              request_id: f7d7c950-2892-4b6c-9300-ef6c5cbcb2d1
+    Forbidden:
+      description: Authenticated but not permitted (suspended or unavailable account)
+      headers:
+        X-Request-ID:
+          $ref: "#/components/headers/RequestId"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          examples:
+            account_suspended:
+              summary: Suspended account
+              value:
+                error:
+                  code: account_suspended
+                  message: This account has been suspended.
+                  details: {}
+                  request_id: f7d7c950-2892-4b6c-9300-ef6c5cbcb2d1
+            account_unavailable:
+              summary: Deleted or pending deletion
+              value:
+                error:
+                  code: account_unavailable
+                  message: This account is no longer available.
+                  details: {}
+                  request_id: f7d7c950-2892-4b6c-9300-ef6c5cbcb2d1
     InternalError:
       description: Unexpected server error
       headers:
@@ -199,6 +282,100 @@ components:
           type: object
           additionalProperties:
             type: string
+    UserStatus:
+      type: string
+      description: Local application account lifecycle status.
+      enum:
+        - incomplete
+        - active
+        - suspended
+        - pending_deletion
+        - deleted
+    TimerMode:
+      type: string
+      description: Remembered Sketch Session timer mode.
+      enum:
+        - countdown
+        - no_timer
+    AppearancePreference:
+      type: string
+      description: Preferred colour appearance.
+      enum:
+        - system
+        - light
+        - dark
+    PreferencesSummary:
+      type: object
+      description: |
+        Preference summary returned with the current user.
+        Phase 2 returns defaults; server-backed preferences arrive in Phase 3.
+      required:
+        - notifications_enabled
+        - notification_time_local
+        - timezone
+        - remember_timer_option
+        - remembered_timer_mode
+        - remembered_timer_seconds
+        - appearance
+      properties:
+        notifications_enabled:
+          type: boolean
+          example: false
+        notification_time_local:
+          type:
+            - string
+            - "null"
+          description: Local reminder time as HH:MM:SS, or null when unset.
+          example: null
+        timezone:
+          type: string
+          example: UTC
+        remember_timer_option:
+          type: boolean
+          example: false
+        remembered_timer_mode:
+          oneOf:
+            - $ref: "#/components/schemas/TimerMode"
+            - type: "null"
+          example: null
+        remembered_timer_seconds:
+          type:
+            - integer
+            - "null"
+          example: null
+        appearance:
+          $ref: "#/components/schemas/AppearancePreference"
+    CurrentUser:
+      type: object
+      required:
+        - id
+        - username
+        - display_name
+        - profile_completed
+        - status
+        - preferences
+      properties:
+        id:
+          $ref: "#/components/schemas/UUID"
+        username:
+          type:
+            - string
+            - "null"
+          description: Public username; null until profile completion.
+          example: null
+        display_name:
+          type: string
+          example: New sketcher
+        profile_completed:
+          type: boolean
+          description: True when profile_completed_at is set.
+          example: false
+        status:
+          $ref: "#/components/schemas/UserStatus"
+        preferences:
+          $ref: "#/components/schemas/PreferencesSummary"
 tags:
   - name: health
     description: Process health probes
+  - name: me
+    description: Authenticated current-user endpoints

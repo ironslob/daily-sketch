@@ -1,5 +1,10 @@
 import Foundation
 
+enum DescopeConfig {
+    /// Placeholder project ID used for local mock authentication.
+    static let placeholderProjectID = "replace-me"
+}
+
 struct AppEnvironment: Equatable, Sendable {
     enum Kind: String, Sendable {
         case local
@@ -10,6 +15,7 @@ struct AppEnvironment: Equatable, Sendable {
 
     let kind: Kind
     let apiBaseURL: URL
+    let descopeProjectID: String
 
     static var current: AppEnvironment {
         let kindRaw = Bundle.main.object(forInfoDictionaryKey: "APP_ENVIRONMENT") as? String
@@ -25,6 +31,10 @@ struct AppEnvironment: Equatable, Sendable {
             preconditionFailure("Invalid API_BASE_URL: \(urlString)")
         }
 
-        return AppEnvironment(kind: kind, apiBaseURL: url)
+        let descopeProjectID = Bundle.main.object(forInfoDictionaryKey: "DESCOPE_PROJECT_ID") as? String
+            ?? ProcessInfo.processInfo.environment["DESCOPE_PROJECT_ID"]
+            ?? DescopeConfig.placeholderProjectID
+
+        return AppEnvironment(kind: kind, apiBaseURL: url, descopeProjectID: descopeProjectID)
     }
 }

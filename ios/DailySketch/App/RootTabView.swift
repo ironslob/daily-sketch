@@ -10,10 +10,7 @@ struct RootTabView: View {
             NavigationStack(path: $navigation.homePath) {
                 HomePlaceholderView()
                     .navigationDestination(for: AppRoute.self) { route in
-                        switch route {
-                        case .settings:
-                            SettingsPlaceholderView()
-                        }
+                        destination(for: route)
                     }
             }
             .tabItem {
@@ -23,10 +20,7 @@ struct RootTabView: View {
             NavigationStack(path: $navigation.profilePath) {
                 ProfilePlaceholderView()
                     .navigationDestination(for: AppRoute.self) { route in
-                        switch route {
-                        case .settings:
-                            SettingsPlaceholderView()
-                        }
+                        destination(for: route)
                     }
             }
             .tabItem {
@@ -34,6 +28,16 @@ struct RootTabView: View {
             }
         }
         .tint(AppColors.primary)
+    }
+
+    @ViewBuilder
+    private func destination(for route: AppRoute) -> some View {
+        switch route {
+        case .settings:
+            SettingsPlaceholderView()
+        case .authentication(let mode):
+            AuthenticationView(mode: mode)
+        }
     }
 }
 

@@ -9,6 +9,9 @@ struct DailySketchApp: App {
             RootTabView()
                 .environment(dependencies)
                 .preferredColorScheme(nil)
+                .task {
+                    await dependencies.auth.bootstrap()
+                }
         }
     }
 }

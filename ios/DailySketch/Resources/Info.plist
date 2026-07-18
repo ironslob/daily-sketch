@@ -6,6 +6,8 @@
 	<string>$(API_BASE_URL)</string>
 	<key>APP_ENVIRONMENT</key>
 	<string>$(APP_ENVIRONMENT)</string>
+	<key>DESCOPE_PROJECT_ID</key>
+	<string>$(DESCOPE_PROJECT_ID)</string>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleExecutable</key>

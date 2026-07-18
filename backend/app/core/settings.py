@@ -41,6 +41,7 @@ class Settings(BaseSettings):
         alias="DESCOPE_ISSUER",
     )
     descope_audience: str = Field(default="replace-me", alias="DESCOPE_AUDIENCE")
+    descope_jwks_url: str | None = Field(default=None, alias="DESCOPE_JWKS_URL")
 
     @field_validator("request_timeout_seconds")
     @classmethod
@@ -68,6 +69,12 @@ class Settings(BaseSettings):
     @property
     def is_production(self) -> bool:
         return self.app_env == "production"
+
+    @property
+    def resolved_descope_jwks_url(self) -> str:
+        if self.descope_jwks_url:
+            return self.descope_jwks_url
+        return f"https://api.descope.com/{self.descope_project_id}/.well-known/jwks.json"
 
 
 @lru_cache

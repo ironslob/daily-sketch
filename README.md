@@ -2,7 +2,7 @@
 
 Native iOS creative journal with a FastAPI backend. Every user receives the same three-word Daily Prompt; guests can sketch before authenticating.
 
-This repository is a monorepo. Phase 1 establishes the shared API contract conventions and application shell on top of the Phase 0 tooling foundation.
+This repository is a monorepo. Phase 2 adds Descope authentication, local user provisioning, and `GET /api/v1/me` on top of the Phase 1 contract and application shell.
 
 ## Prerequisites
 
@@ -48,10 +48,18 @@ make ios-build
 | `ios/` | SwiftUI app (`DailySketch`) |
 | `spec/` | Product, design, architecture, implementation, infrastructure |
 
+## Phase 2 — Authentication
+
+- **Contract:** `GET /api/v1/me` returns the current local user (id, username, display name, profile completion, account status, preferences summary). Requires `Authorization: Bearer <Descope JWT>`.
+- **Backend:** Verifies Descope JWTs via JWKS (`DESCOPE_JWKS_URL`, defaulting from `DESCOPE_PROJECT_ID`), provisions a local `users` row on first login (idempotent by `descope_subject`), and rejects suspended/deleted accounts.
+- **Local mock auth:** When `DESCOPE_PROJECT_ID=replace-me` (the committed placeholder), the iOS app uses `MockAuthService` and the backend accepts matching HS256 local-dev JWTs so guest → sign-in → `GET /me` works without real Descope credentials. Replace placeholders with a development Descope project ID to use Descope Flows.
+- **iOS:** Guest launch is unchanged. Profile offers Create Free Account / Sign In. Sessions persist in Keychain. Settings offers Sign Out (does not delete local Drafts — none exist yet in Phase 2).
+- **Secrets:** Never commit real Descope management secrets. Project ID is public configuration only.
+
 ## Phase 1 conventions
 
 - **API prefix:** Feature routes use `/api/v1`. Health probes stay at `/health/live` and `/health/ready`.
-- **Auth scheme:** `bearerAuth` (Descope JWT) is defined in the contract for authenticated feature endpoints (wired in Phase 2).
+- **Auth scheme:** `bearerAuth` (Descope JWT) is defined in the contract and applied to authenticated feature endpoints.
 - **Errors:** Responses use the shared `Error` envelope (`error.code`, `error.message`, `error.details`, `error.request_id`).
 - **Pagination:** List endpoints use the shared `CursorPage` shape (`items`, `next_cursor`).
 - **Request ID:** Every response includes `X-Request-ID`. Clients may supply one; otherwise the server generates a UUID. The same value appears in error bodies.
@@ -93,7 +101,7 @@ Credentials are local placeholders only — see `.env.example`. Never commit rea
 - Minimum iOS: **18.0**
 - Bundle ID placeholder: `com.example.dailysketch.dev`
 - Apple Team ID is not committed; set `DEVELOPMENT_TEAM` locally when needed
-- Debug builds use `API_BASE_URL=http://localhost:8000` and `APP_ENVIRONMENT=local`
+- Debug builds use `API_BASE_URL=http://localhost:8000`, `APP_ENVIRONMENT=local`, and `DESCOPE_PROJECT_ID=replace-me`
 
 ## OpenAPI workflow
 

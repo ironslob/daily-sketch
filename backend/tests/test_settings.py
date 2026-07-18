@@ -47,3 +47,16 @@ def test_settings_reject_invalid_log_level(monkeypatch: pytest.MonkeyPatch) -> N
     monkeypatch.setenv("LOG_LEVEL", "verbose")
     with pytest.raises(ValidationError):
         Settings(_env_file=None)  # type: ignore[call-arg]
+
+
+def test_settings_resolved_descope_jwks_url() -> None:
+    settings = Settings(_env_file=None)  # type: ignore[call-arg]
+    assert settings.resolved_descope_jwks_url.endswith(
+        f"/{settings.descope_project_id}/.well-known/jwks.json"
+    )
+
+
+def test_settings_descope_jwks_url_override(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("DESCOPE_JWKS_URL", "https://example.test/jwks.json")
+    settings = Settings(_env_file=None)  # type: ignore[call-arg]
+    assert settings.resolved_descope_jwks_url == "https://example.test/jwks.json"

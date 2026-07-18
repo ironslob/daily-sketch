@@ -60,6 +60,10 @@ services:
       STORAGE_ACCESS_KEY: ${MINIO_ROOT_USER:-minioadmin}
       STORAGE_SECRET_KEY: ${MINIO_ROOT_PASSWORD:-minioadmin}
       STORAGE_USE_SSL: "false"
+      DESCOPE_PROJECT_ID: ${DESCOPE_PROJECT_ID:-replace-me}
+      DESCOPE_ISSUER: ${DESCOPE_ISSUER:-https://api.descope.com/v1/apps/replace-me}
+      DESCOPE_AUDIENCE: ${DESCOPE_AUDIENCE:-replace-me}
+      DESCOPE_JWKS_URL: ${DESCOPE_JWKS_URL:-}
     ports:
       - "8000:8000"
     depends_on:
