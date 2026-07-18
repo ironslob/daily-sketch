@@ -9,6 +9,7 @@ final class AppDependencies {
     let descopeAuthService: DescopeAuthService?
     let preferencesService: any PreferencesServing
     let profileUpdater: any ProfileUpdating
+    let promptRepository: PromptRepository
 
     init(
         environment: AppEnvironment,
@@ -16,7 +17,8 @@ final class AppDependencies {
         auth: AuthSessionStore,
         descopeAuthService: DescopeAuthService? = nil,
         preferencesService: any PreferencesServing,
-        profileUpdater: any ProfileUpdating
+        profileUpdater: any ProfileUpdating,
+        promptRepository: PromptRepository
     ) {
         self.environment = environment
         self.navigation = navigation
@@ -24,12 +26,14 @@ final class AppDependencies {
         self.descopeAuthService = descopeAuthService
         self.preferencesService = preferencesService
         self.profileUpdater = profileUpdater
+        self.promptRepository = promptRepository
     }
 
     @MainActor
     static var live: AppDependencies {
         let environment = AppEnvironment.current
         let repository = MeRepository(baseURL: environment.apiBaseURL)
+        let promptRepository = PromptRepository(baseURL: environment.apiBaseURL)
         let projectID = environment.descopeProjectID
 
         if projectID == DescopeConfig.placeholderProjectID || projectID.isEmpty {
@@ -44,7 +48,8 @@ final class AppDependencies {
                 auth: auth,
                 descopeAuthService: nil,
                 preferencesService: repository,
-                profileUpdater: repository
+                profileUpdater: repository,
+                promptRepository: promptRepository
             )
         }
 
@@ -59,7 +64,8 @@ final class AppDependencies {
             auth: auth,
             descopeAuthService: descope,
             preferencesService: repository,
-            profileUpdater: repository
+            profileUpdater: repository,
+            promptRepository: promptRepository
         )
     }
 }

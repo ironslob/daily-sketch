@@ -8,7 +8,7 @@ struct RootTabView: View {
 
         TabView {
             NavigationStack(path: $navigation.homePath) {
-                HomePlaceholderView()
+                HomeView()
                     .navigationDestination(for: AppRoute.self) { route in
                         destination(for: route)
                     }

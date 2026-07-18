@@ -2,7 +2,7 @@
 
 Native iOS creative journal with a FastAPI backend. Every user receives the same three-word Daily Prompt; guests can sketch before authenticating.
 
-This repository is a monorepo. Phase 3 adds profile completion, server-backed preferences, and public profiles on top of Phase 2 authentication.
+This repository is a monorepo. Phase 4 delivers today’s Daily Prompt and the Home experience on top of Phase 3 profile/preferences.
 
 ## Prerequisites
 
@@ -23,6 +23,7 @@ make up
 curl http://localhost:8000/health/live
 curl http://localhost:8000/health/ready
 make db-migrate
+make seed
 ```
 
 Generate and open the iOS project:
@@ -47,6 +48,18 @@ make ios-build
 | `backend/` | FastAPI application, Alembic migrations, tests |
 | `ios/` | SwiftUI app (`DailySketch`) |
 | `spec/` | Product, design, architecture, implementation, infrastructure |
+
+## Phase 4 — Daily Prompt and Home experience
+
+- **Contract (public; guest + authenticated):**
+  - `GET /api/v1/prompts/today` — published Daily Prompt for the current UTC Prompt Date.
+  - `GET /api/v1/prompts/{prompt_id}` — published Daily Prompt by ID.
+  - `GET /api/v1/feed/recent` — cursor-paginated recent feed (empty until Submissions exist in Phase 7/8).
+- **Database:** `daily_prompts` table (migration `0004_daily_prompts`) with `prompt_status` enum (`draft|published|withdrawn`). One prompt per `prompt_date`.
+- **Prompt Date:** Global boundary at **00:00 UTC** (see `spec/decisions/0005-global-prompt-date-boundary.md`). All clients see the same current Prompt.
+- **Seed:** `make seed` runs `python -m app.seeds.prompts --days 30` to deterministically upsert today plus 30 future published prompts from `backend/app/data/prompt_words.txt`.
+- **iOS Home:** Three-word `PromptGroup`, Start Sketch (placeholder until Phase 5 timer flow), and Community Sketches with independent prompt/feed loading, empty, and error/retry states. Feed failure never blocks the prompt or Start Sketch.
+- **Out of Phase 4:** Timer Selection / Sketch Sessions (Phase 5), SubmissionCard image feed / infinite scroll (Phase 8).
 
 ## Phase 3 — Profile completion and preferences
 
@@ -86,7 +99,7 @@ make ios-build
 | `make backend-run` | Run API with reload on `:8000` |
 | `make backend-test` / `lint` / `typecheck` | Backend quality gates |
 | `make db-migrate` / `db-reset` | Alembic migrate (reset destroys local volume) |
-| `make seed` | No-op until prompt/fixture seeding arrives |
+| `make seed` | Seed today + future Daily Prompts |
 | `make api-validate` | Validate OpenAPI |
 | `make api-generate-ios` | Regenerate Swift client |
 | `make api-check-generated` | Fail if generated client is stale |

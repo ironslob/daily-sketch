@@ -295,6 +295,122 @@ paths:
           $ref: "#/components/responses/NotFound"
         "500":
           $ref: "#/components/responses/InternalError"
+  /api/v1/prompts/today:
+    get:
+      operationId: getTodaysPrompt
+      tags:
+        - prompts
+      summary: Today's Daily Prompt
+      description: |
+        Returns the published Daily Prompt for the current Prompt Date
+        (UTC calendar date). Available to guests and authenticated users.
+        Does not invent a local prompt when none is published.
+      responses:
+        "200":
+          description: Today's published Daily Prompt
+          headers:
+            X-Request-ID:
+              $ref: "#/components/headers/RequestId"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DailyPrompt"
+              example:
+                id: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+                prompt_date: "2026-07-18"
+                word_1: Chocolate
+                word_2: Coffee
+                word_3: Banana
+                status: published
+                published_at: "2026-07-17T00:00:00Z"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalError"
+  /api/v1/prompts/{prompt_id}:
+    get:
+      operationId: getPromptById
+      tags:
+        - prompts
+      summary: Daily Prompt by ID
+      description: |
+        Returns a published Daily Prompt by its identifier.
+        Draft and withdrawn prompts are not returned.
+      parameters:
+        - name: prompt_id
+          in: path
+          required: true
+          description: Daily Prompt UUID.
+          schema:
+            $ref: "#/components/schemas/UUID"
+          example: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+      responses:
+        "200":
+          description: Published Daily Prompt
+          headers:
+            X-Request-ID:
+              $ref: "#/components/headers/RequestId"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DailyPrompt"
+              example:
+                id: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+                prompt_date: "2026-07-18"
+                word_1: Chocolate
+                word_2: Coffee
+                word_3: Banana
+                status: published
+                published_at: "2026-07-17T00:00:00Z"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalError"
+  /api/v1/feed/recent:
+    get:
+      operationId: getRecentFeed
+      tags:
+        - feed
+      summary: Recent community feed
+      description: |
+        Returns a reverse-chronological page of published Submissions.
+        Phase 4 may return an empty page until Submissions exist.
+        Available to guests and authenticated users.
+      parameters:
+        - name: cursor
+          in: query
+          required: false
+          description: Opaque cursor from a previous page, or omit for the first page.
+          schema:
+            type:
+              - string
+              - "null"
+          example: null
+        - name: limit
+          in: query
+          required: false
+          description: Maximum number of items to return (1–50). Defaults to 20.
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 50
+            default: 20
+          example: 20
+      responses:
+        "200":
+          description: Feed page
+          headers:
+            X-Request-ID:
+              $ref: "#/components/headers/RequestId"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RecentFeed"
+              example:
+                items: []
+                next_cursor: null
+        "500":
+          $ref: "#/components/responses/InternalError"
 components:
   securitySchemes:
     bearerAuth:
@@ -389,12 +505,23 @@ components:
         application/json:
           schema:
             $ref: "#/components/schemas/Error"
-          example:
-            error:
-              code: user_not_found
-              message: The requested profile could not be found.
-              details: {}
-              request_id: f7d7c950-2892-4b6c-9300-ef6c5cbcb2d1
+          examples:
+            user_not_found:
+              summary: Public profile not found
+              value:
+                error:
+                  code: user_not_found
+                  message: The requested profile could not be found.
+                  details: {}
+                  request_id: f7d7c950-2892-4b6c-9300-ef6c5cbcb2d1
+            prompt_not_found:
+              summary: Daily Prompt not found
+              value:
+                error:
+                  code: prompt_not_found
+                  message: Today's prompt is not available yet.
+                  details: {}
+                  request_id: f7d7c950-2892-4b6c-9300-ef6c5cbcb2d1
     ValidationError:
       description: Request body failed validation or domain rules
       headers:
@@ -716,6 +843,177 @@ components:
             - "null"
           description: Signed or CDN avatar URL when available; null until avatar upload exists.
           example: null
+    PromptStatus:
+      type: string
+      description: Daily Prompt publication lifecycle status.
+      enum:
+        - draft
+        - published
+        - withdrawn
+    DailyPrompt:
+      type: object
+      description: |
+        Shared three-word Daily Prompt for one Prompt Date.
+        Words are returned in fixed display order (word_1, word_2, word_3).
+      required:
+        - id
+        - prompt_date
+        - word_1
+        - word_2
+        - word_3
+        - status
+        - published_at
+      properties:
+        id:
+          $ref: "#/components/schemas/UUID"
+        prompt_date:
+          type: string
+          format: date
+          description: UTC Prompt Date to which this Daily Prompt belongs.
+          example: "2026-07-18"
+        word_1:
+          type: string
+          minLength: 1
+          example: Chocolate
+        word_2:
+          type: string
+          minLength: 1
+          example: Coffee
+        word_3:
+          type: string
+          minLength: 1
+          example: Banana
+        status:
+          $ref: "#/components/schemas/PromptStatus"
+        published_at:
+          type:
+            - string
+            - "null"
+          format: date-time
+          description: When the prompt was published; null for draft prompts.
+          example: "2026-07-17T00:00:00Z"
+    FeedPromptSummary:
+      type: object
+      description: Compact Prompt projection embedded in feed items.
+      required:
+        - id
+        - prompt_date
+        - word_1
+        - word_2
+        - word_3
+      properties:
+        id:
+          $ref: "#/components/schemas/UUID"
+        prompt_date:
+          type: string
+          format: date
+          example: "2026-07-18"
+        word_1:
+          type: string
+          example: Chocolate
+        word_2:
+          type: string
+          example: Coffee
+        word_3:
+          type: string
+          example: Banana
+    FeedUserSummary:
+      type: object
+      description: Compact public user projection embedded in feed items.
+      required:
+        - id
+        - username
+        - display_name
+        - avatar_url
+      properties:
+        id:
+          $ref: "#/components/schemas/UUID"
+        username:
+          type: string
+          example: sketchy_matt
+        display_name:
+          type: string
+          example: Matt
+        avatar_url:
+          type:
+            - string
+            - "null"
+          example: null
+    FeedItem:
+      type: object
+      description: |
+        Forward-compatible feed projection for a published Submission.
+        Phase 4 returns an empty items array; Phase 8 finalises the projection.
+      required:
+        - id
+        - image_url
+        - thumbnail_url
+        - user
+        - prompt
+        - timer_mode
+        - timer_seconds
+        - caption_preview
+        - like_count
+        - reflection_count
+        - viewer_has_liked
+        - is_owner
+        - published_at
+      properties:
+        id:
+          $ref: "#/components/schemas/UUID"
+        image_url:
+          type: string
+          format: uri
+          description: Display image URL.
+        thumbnail_url:
+          type: string
+          format: uri
+          description: Thumbnail image URL.
+        user:
+          $ref: "#/components/schemas/FeedUserSummary"
+        prompt:
+          $ref: "#/components/schemas/FeedPromptSummary"
+        timer_mode:
+          $ref: "#/components/schemas/TimerMode"
+        timer_seconds:
+          type:
+            - integer
+            - "null"
+          description: Selected countdown seconds, or null for no_timer.
+        caption_preview:
+          type:
+            - string
+            - "null"
+          description: Truncated caption preview, or null when absent.
+        like_count:
+          type: integer
+          minimum: 0
+        reflection_count:
+          type: integer
+          minimum: 0
+        viewer_has_liked:
+          type: boolean
+        is_owner:
+          type: boolean
+        published_at:
+          $ref: "#/components/schemas/Timestamp"
+    RecentFeed:
+      type: object
+      description: Cursor-paginated recent community feed page.
+      required:
+        - items
+        - next_cursor
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/FeedItem"
+        next_cursor:
+          type:
+            - string
+            - "null"
+          description: Opaque cursor for the next page, or null when no further pages exist.
+          example: null
 tags:
   - name: health
     description: Process health probes
@@ -723,3 +1021,7 @@ tags:
     description: Authenticated current-user endpoints
   - name: users
     description: Public user profile endpoints
+  - name: prompts
+    description: Shared Daily Prompt endpoints
+  - name: feed
+    description: Community feed endpoints

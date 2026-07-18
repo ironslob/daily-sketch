@@ -12,7 +12,7 @@ from app.core.settings import get_settings
 from app.db.session import Base
 
 # Import models so Alembic metadata includes them.
-from app.models import User, UserPreferences  # noqa: F401
+from app.models import DailyPrompt, User, UserPreferences  # noqa: F401
 
 config = context.config
 

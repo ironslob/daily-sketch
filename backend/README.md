@@ -2,6 +2,13 @@
 
 FastAPI application for Daily Sketch. See the repository root README for local setup.
 
+## Phase 4 — Daily Prompt and empty feed
+
+- **Endpoints:** `GET /api/v1/prompts/today`, `GET /api/v1/prompts/{prompt_id}`, `GET /api/v1/feed/recent` (all unauthenticated).
+- **Service rules:** Only `published` prompts are returned. Missing today/id → `404 prompt_not_found`. Feed returns `{ "items": [], "next_cursor": null }` until Submissions exist.
+- **Clock:** `PromptService` uses injectable `Clock.today()` (UTC calendar date).
+- **Seed:** `make seed` / `python -m app.seeds.prompts` upserts deterministic three-word prompts (validated non-empty, unique within a prompt).
+
 ## Phase 2 — Authentication and user provisioning
 
 - **JWT verification:** Descope session JWTs are verified with PyJWT `PyJWKClient` (JWKS caching/rotation), checking signature, issuer, audience, expiry, and `sub`.
@@ -28,4 +35,5 @@ make backend-test
 make backend-lint
 make backend-typecheck
 make db-migrate
+make seed
 ```

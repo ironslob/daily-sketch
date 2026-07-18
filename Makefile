@@ -51,7 +51,7 @@ db-reset:
 	$(MAKE) db-migrate
 
 seed:
-	@echo "Seed is a no-op in Phase 0. Prompt and fixture seeding arrives in later phases."
+	cd $(BACKEND) && . .venv/bin/activate && python -m app.seeds.prompts --days 30
 
 api-validate:
 	bash $(ROOT)/scripts/api-validate.sh

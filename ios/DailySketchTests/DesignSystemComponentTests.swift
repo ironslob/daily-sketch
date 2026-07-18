@@ -25,10 +25,17 @@ final class DesignSystemComponentTests: XCTestCase {
             message: "Check your connection and try again.",
             onRetry: {}
         )
+        let promptGroup = PromptGroup(
+            words: ["Chocolate", "Coffee", "Banana"],
+            accessibilityLabel: "Today’s prompt: Chocolate, Coffee, Banana."
+        )
+        let skeleton = LoadingSkeleton(height: 72)
 
         XCTAssertNotNil(loading.body)
         XCTAssertNotNil(empty.body)
         XCTAssertNotNil(error.body)
+        XCTAssertNotNil(promptGroup.body)
+        XCTAssertNotNil(skeleton.body)
     }
 
     func testSemanticColourTokensExist() {
