@@ -6,10 +6,13 @@ enum AppRoute: Hashable {
     case authentication(AuthenticationView.Mode)
     case profileCompletion
     case submissionDetail(UUID)
+    case publicProfile(username: String)
 }
 
 @Observable
 final class AppNavigationStore {
     var homePath: [AppRoute] = []
     var profilePath: [AppRoute] = []
+    /// Set when a Submission is deleted so Home can refresh the community feed.
+    var feedNeedsRefresh = false
 }

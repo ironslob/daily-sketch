@@ -27,7 +27,7 @@ open class FeedAPI {
     /**
      Recent community feed
      - GET /api/v1/feed/recent
-     - Returns a reverse-chronological page of published Submissions. Phase 4 may return an empty page until Submissions exist. Available to guests and authenticated users. 
+     - Returns a reverse-chronological page of published Submissions ordered by `published_at DESC, id DESC`. Soft-deleted, hidden, removed, and suspended/deleted-author content is excluded. Available to guests and authenticated users. When authenticated, `is_owner` and `viewer_has_liked` reflect the viewer (`viewer_has_liked` remains false until Likes land in Phase 9). Pass an opaque `cursor` from a previous page to continue keyset pagination without duplicates or skips under concurrent inserts. 
      - responseHeaders: [X-Request-ID(UUID)]
      - parameter cursor: (query) Opaque cursor from a previous page, or omit for the first page. (optional)
      - parameter limit: (query) Maximum number of items to return (1–50). Defaults to 20. (optional, default to 20)

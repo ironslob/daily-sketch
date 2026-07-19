@@ -27,7 +27,7 @@ struct PromptRepository: PromptFetching, FeedFetching {
         do {
             let feed = try await FeedAPI.getRecentFeed(cursor: cursor, limit: limit)
             return RecentFeedPage(
-                items: feed.items.map { FeedItemModel(id: $0.id) },
+                items: feed.items.compactMap(mapFeedItem),
                 nextCursor: feed.nextCursor
             )
         } catch {
@@ -52,6 +52,34 @@ struct PromptRepository: PromptFetching, FeedFetching {
             word3: prompt.word3,
             status: prompt.status.rawValue,
             publishedAt: prompt.publishedAt
+        )
+    }
+
+    private func mapFeedItem(_ item: FeedItem) -> FeedItemModel? {
+        guard
+            let imageURL = URL(string: item.imageUrl),
+            let thumbnailURL = URL(string: item.thumbnailUrl)
+        else {
+            return nil
+        }
+        return FeedItemModel(
+            id: item.id,
+            imageURL: imageURL,
+            thumbnailURL: thumbnailURL,
+            userId: item.user.id,
+            username: item.user.username,
+            displayName: item.user.displayName,
+            avatarURL: item.user.avatarUrl.flatMap(URL.init(string:)),
+            promptWords: [item.prompt.word1, item.prompt.word2, item.prompt.word3],
+            promptDate: item.prompt.promptDate,
+            timerMode: item.timerMode.rawValue,
+            timerSeconds: item.timerSeconds,
+            captionPreview: item.captionPreview,
+            likeCount: item.likeCount,
+            reflectionCount: item.reflectionCount,
+            viewerHasLiked: item.viewerHasLiked,
+            isOwner: item.isOwner,
+            publishedAt: item.publishedAt
         )
     }
 
@@ -88,9 +116,12 @@ final class RecordingPromptFetcher: PromptFetching, FeedFetching, @unchecked Sen
     var prompt: DailyPromptModel?
     var promptError: Error?
     var feed: RecentFeedPage = RecentFeedPage(items: [], nextCursor: nil)
+    var feedPages: [String?: RecentFeedPage] = [:]
     var feedError: Error?
     private(set) var todaysPromptCallCount = 0
     private(set) var recentFeedCallCount = 0
+    private(set) var lastFeedCursor: String?
+    private(set) var lastFeedLimit: Int?
 
     func fetchTodaysPrompt() async throws -> DailyPromptModel {
         todaysPromptCallCount += 1
@@ -104,11 +135,14 @@ final class RecordingPromptFetcher: PromptFetching, FeedFetching, @unchecked Sen
     }
 
     func fetchRecentFeed(cursor: String?, limit: Int) async throws -> RecentFeedPage {
-        _ = cursor
-        _ = limit
+        lastFeedCursor = cursor
+        lastFeedLimit = limit
         recentFeedCallCount += 1
         if let feedError {
             throw feedError
+        }
+        if let page = feedPages[cursor] {
+            return page
         }
         return feed
     }

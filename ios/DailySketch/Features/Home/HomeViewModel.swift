@@ -11,6 +11,7 @@ enum HomePromptState: Equatable {
 enum HomeFeedState: Equatable {
     case loading
     case empty
+    case loaded([FeedItemModel])
     case failed(String)
 }
 
@@ -20,12 +21,16 @@ final class HomeViewModel {
     private(set) var promptState: HomePromptState = .loading
     private(set) var feedState: HomeFeedState = .loading
     private(set) var cachedPrompt: DailyPromptModel?
+    private(set) var feedItems: [FeedItemModel] = []
+    private(set) var nextFeedCursor: String?
+    private(set) var isLoadingMoreFeed = false
     private(set) var todaysPublished: [PublishedLocalSubmission] = []
 
     private let promptFetcher: any PromptFetching
     private let feedFetcher: any FeedFetching
     private let publishedStore: any PublishedSubmissionStoring
     let sketchFlow: SketchFlowViewModel
+    private let feedPageSize = 20
 
     init(
         promptFetcher: any PromptFetching,
@@ -73,11 +78,22 @@ final class HomeViewModel {
         todaysPublished.count > 1 ? "View My Sketches" : "View My Sketch"
     }
 
+    var canLoadMoreFeed: Bool {
+        nextFeedCursor != nil && !isLoadingMoreFeed
+    }
+
     func load() async {
         sketchFlow.prepareOnAppear()
         refreshPublishedToday()
         async let promptLoad: Void = loadPrompt()
-        async let feedLoad: Void = loadFeed()
+        async let feedLoad: Void = loadFeed(reset: true)
+        _ = await (promptLoad, feedLoad)
+    }
+
+    func refresh() async {
+        refreshPublishedToday()
+        async let promptLoad: Void = loadPrompt()
+        async let feedLoad: Void = loadFeed(reset: true)
         _ = await (promptLoad, feedLoad)
     }
 
@@ -94,7 +110,25 @@ final class HomeViewModel {
     }
 
     func retryFeed() async {
-        await loadFeed()
+        await loadFeed(reset: true)
+    }
+
+    func loadMoreFeedIfNeeded(currentItem item: FeedItemModel) async {
+        guard canLoadMoreFeed else { return }
+        guard let index = feedItems.firstIndex(where: { $0.id == item.id }) else { return }
+        let thresholdIndex = max(feedItems.count - 4, 0)
+        guard index >= thresholdIndex else { return }
+        await loadFeed(reset: false)
+    }
+
+    func removeFeedItem(id: UUID) {
+        feedItems.removeAll { $0.id == id }
+        if feedItems.isEmpty {
+            feedState = .empty
+            nextFeedCursor = nil
+        } else {
+            feedState = .loaded(feedItems)
+        }
     }
 
     func startSketch() {
@@ -125,13 +159,36 @@ final class HomeViewModel {
         }
     }
 
-    private func loadFeed() async {
-        feedState = .loading
-        do {
-            _ = try await feedFetcher.fetchRecentFeed(cursor: nil, limit: 20)
-            feedState = .empty
-        } catch {
-            feedState = .failed("Couldn’t load community sketches. Check your connection and try again.")
+    private func loadFeed(reset: Bool) async {
+        if reset {
+            feedState = feedItems.isEmpty ? .loading : feedState
+            isLoadingMoreFeed = false
+        } else {
+            guard let nextFeedCursor, !isLoadingMoreFeed else { return }
+            isLoadingMoreFeed = true
+            _ = nextFeedCursor
         }
+
+        let cursor = reset ? nil : nextFeedCursor
+        do {
+            let page = try await feedFetcher.fetchRecentFeed(cursor: cursor, limit: feedPageSize)
+            if reset {
+                feedItems = page.items
+            } else {
+                let existingIDs = Set(feedItems.map(\.id))
+                let appended = page.items.filter { !existingIDs.contains($0.id) }
+                feedItems.append(contentsOf: appended)
+            }
+            nextFeedCursor = page.nextCursor
+            feedState = feedItems.isEmpty ? .empty : .loaded(feedItems)
+        } catch {
+            if reset && feedItems.isEmpty {
+                feedState = .failed(
+                    "Couldn’t load community sketches. Check your connection and try again."
+                )
+            }
+            // Keep previously loaded feed visible on pagination failure.
+        }
+        isLoadingMoreFeed = false
     }
 }

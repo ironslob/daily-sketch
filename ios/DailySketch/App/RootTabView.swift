@@ -54,9 +54,14 @@ struct RootTabView: View {
                 model: SubmissionDetailViewModel(
                     submissionId: submissionId,
                     submissionService: dependencies.submissionRepository,
-                    accessTokenProvider: { dependencies.auth.accessToken }
+                    accessTokenProvider: { dependencies.auth.accessToken },
+                    onDeleted: {
+                        dependencies.navigation.feedNeedsRefresh = true
+                    }
                 )
             )
+        case .publicProfile(let username):
+            PublicProfilePlaceholderView(username: username)
         }
     }
 }

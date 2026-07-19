@@ -30,12 +30,24 @@ final class DesignSystemComponentTests: XCTestCase {
             accessibilityLabel: "Today’s prompt: Chocolate, Coffee, Banana."
         )
         let skeleton = LoadingSkeleton(height: 72)
+        let avatar = AvatarView(displayName: "Matt", username: "sketchy_matt")
+        let chip = PromptChip(word: "Coffee")
+        let social = SocialActionButton(kind: .like, count: 3, action: {})
+        let card = SubmissionCard(
+            item: FeedItemModel.preview,
+            onTapArtwork: {},
+            onTapOwner: {}
+        )
 
         XCTAssertNotNil(loading.body)
         XCTAssertNotNil(empty.body)
         XCTAssertNotNil(error.body)
         XCTAssertNotNil(promptGroup.body)
         XCTAssertNotNil(skeleton.body)
+        XCTAssertNotNil(avatar.body)
+        XCTAssertNotNil(chip.body)
+        XCTAssertNotNil(social.body)
+        XCTAssertNotNil(card.body)
     }
 
     func testSemanticColourTokensExist() {

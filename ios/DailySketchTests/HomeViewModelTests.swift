@@ -218,4 +218,128 @@ final class HomeViewModelTests: XCTestCase {
         await model.load()
         XCTAssertEqual(model.viewMySketchTitle, "View My Sketches")
     }
+
+    func testLoadedFeedStateMapsItems() async {
+        let fetcher = RecordingPromptFetcher()
+        fetcher.prompt = samplePrompt()
+        let item = FeedItemModel.preview
+        fetcher.feed = RecentFeedPage(items: [item], nextCursor: "cursor-1")
+        let model = makeModel(fetcher: fetcher)
+
+        await model.load()
+
+        guard case .loaded(let items) = model.feedState else {
+            return XCTFail("Expected loaded feed")
+        }
+        XCTAssertEqual(items.count, 1)
+        XCTAssertEqual(items.first?.id, item.id)
+        XCTAssertEqual(model.nextFeedCursor, "cursor-1")
+        XCTAssertEqual(fetcher.lastFeedLimit, 20)
+        XCTAssertNil(fetcher.lastFeedCursor)
+    }
+
+    func testInfiniteScrollAppendsNextPage() async {
+        let fetcher = RecordingPromptFetcher()
+        fetcher.prompt = samplePrompt()
+        let first = FeedItemModel.preview
+        let second = FeedItemModel(
+            id: UUID(),
+            imageURL: first.imageURL,
+            thumbnailURL: first.thumbnailURL,
+            userId: first.userId,
+            username: "second",
+            displayName: "Second",
+            avatarURL: nil,
+            promptWords: first.promptWords,
+            promptDate: first.promptDate,
+            timerMode: first.timerMode,
+            timerSeconds: first.timerSeconds,
+            captionPreview: "Next page",
+            likeCount: 1,
+            reflectionCount: 0,
+            viewerHasLiked: false,
+            isOwner: false,
+            publishedAt: first.publishedAt.addingTimeInterval(-3_600)
+        )
+        fetcher.feedPages[nil] = RecentFeedPage(items: [first], nextCursor: "page-2")
+        fetcher.feedPages["page-2"] = RecentFeedPage(items: [second], nextCursor: nil)
+        let model = makeModel(fetcher: fetcher)
+
+        await model.load()
+        await model.loadMoreFeedIfNeeded(currentItem: first)
+
+        guard case .loaded(let items) = model.feedState else {
+            return XCTFail("Expected loaded feed after pagination")
+        }
+        XCTAssertEqual(items.map(\.id), [first.id, second.id])
+        XCTAssertNil(model.nextFeedCursor)
+        XCTAssertEqual(fetcher.recentFeedCallCount, 2)
+        XCTAssertEqual(fetcher.lastFeedCursor, "page-2")
+    }
+
+    func testRefreshReplacesFeedItems() async {
+        let fetcher = RecordingPromptFetcher()
+        fetcher.prompt = samplePrompt()
+        let first = FeedItemModel.preview
+        fetcher.feed = RecentFeedPage(items: [first], nextCursor: nil)
+        let model = makeModel(fetcher: fetcher)
+        await model.load()
+
+        let refreshed = FeedItemModel(
+            id: UUID(),
+            imageURL: first.imageURL,
+            thumbnailURL: first.thumbnailURL,
+            userId: first.userId,
+            username: "refreshed",
+            displayName: "Refreshed",
+            avatarURL: nil,
+            promptWords: first.promptWords,
+            promptDate: first.promptDate,
+            timerMode: first.timerMode,
+            timerSeconds: first.timerSeconds,
+            captionPreview: nil,
+            likeCount: 0,
+            reflectionCount: 0,
+            viewerHasLiked: false,
+            isOwner: false,
+            publishedAt: Date()
+        )
+        fetcher.feed = RecentFeedPage(items: [refreshed], nextCursor: nil)
+        await model.refresh()
+
+        guard case .loaded(let items) = model.feedState else {
+            return XCTFail("Expected loaded feed after refresh")
+        }
+        XCTAssertEqual(items.map(\.id), [refreshed.id])
+    }
+
+    func testRemoveFeedItemFallsBackToEmpty() async {
+        let fetcher = RecordingPromptFetcher()
+        fetcher.prompt = samplePrompt()
+        let item = FeedItemModel.preview
+        fetcher.feed = RecentFeedPage(items: [item], nextCursor: nil)
+        let model = makeModel(fetcher: fetcher)
+        await model.load()
+
+        model.removeFeedItem(id: item.id)
+
+        XCTAssertEqual(model.feedState, .empty)
+        XCTAssertTrue(model.feedItems.isEmpty)
+    }
+
+    func testRelativeTimestampFormatter() {
+        let now = Date()
+        XCTAssertEqual(
+            RelativeTimestampFormatter.string(from: now.addingTimeInterval(-30), now: now),
+            "just now"
+        )
+        XCTAssertEqual(
+            RelativeTimestampFormatter.string(from: now.addingTimeInterval(-120), now: now),
+            "2m ago"
+        )
+        XCTAssertEqual(
+            RelativeTimestampFormatter.string(from: now.addingTimeInterval(-7_200), now: now),
+            "2h ago"
+        )
+    }
 }

@@ -112,7 +112,7 @@ open class SubmissionsAPI {
     /**
      Get a Submission
      - GET /api/v1/submissions/{submission_id}
-     - Returns a published Submission. Available to guests and authenticated users. Soft-deleted, hidden, and removed Submissions are not returned. When authenticated, `is_owner` and `viewer_has_liked` reflect the viewer. 
+     - Returns a published Submission. Available to guests and authenticated users. Soft-deleted, hidden, removed, and suspended/deleted-author Submissions are not returned. When authenticated, `is_owner` and `viewer_has_liked` reflect the viewer (`viewer_has_liked` remains false until Likes land in Phase 9). 
      - responseHeaders: [X-Request-ID(UUID)]
      - parameter submissionId: (path) Submission UUID. 
      - returns: RequestBuilder<Submission> 

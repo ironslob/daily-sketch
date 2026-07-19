@@ -102,6 +102,9 @@ struct HomeView: View {
             .padding(.horizontal, AppSpacing.screenHorizontal)
             .padding(.vertical, AppSpacing.lg)
         }
+        .refreshable {
+            await model.refresh()
+        }
         .sheet(
             isPresented: Binding(
                 get: { model.sketchFlow.showsTimerSelection },
@@ -225,6 +228,12 @@ struct HomeView: View {
         }
         .onChange(of: model.sketchFlow.lastPublishedSubmissionId) { _, _ in
             model.refreshPublishedToday()
+            Task { await model.retryFeed() }
+        }
+        .onChange(of: dependencies.navigation.feedNeedsRefresh) { _, needsRefresh in
+            guard needsRefresh else { return }
+            dependencies.navigation.feedNeedsRefresh = false
+            Task { await model.retryFeed() }
         }
         .confirmationDialog(
             "Discard this draft?",
@@ -359,6 +368,33 @@ struct HomeView: View {
                 message: "Be the first to share an interpretation of today’s prompt.",
                 systemImage: "photo.on.rectangle.angled"
             )
+
+        case .loaded(let items):
+            LazyVStack(spacing: AppSpacing.contentGapLarge) {
+                ForEach(items) { item in
+                    SubmissionCard(
+                        item: item,
+                        onTapArtwork: {
+                            dependencies.navigation.homePath.append(.submissionDetail(item.id))
+                        },
+                        onTapOwner: {
+                            dependencies.navigation.homePath.append(.publicProfile(username: item.username))
+                        },
+                        onTapLike: nil,
+                        onTapReflection: nil
+                    )
+                    .onAppear {
+                        Task { await model.loadMoreFeedIfNeeded(currentItem: item) }
+                    }
+                }
+
+                if model.isLoadingMoreFeed {
+                    ProgressView()
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, AppSpacing.md)
+                        .accessibilityLabel("Loading more sketches")
+                }
+            }
 
         case .failed(let message):
             ErrorStateView(

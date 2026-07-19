@@ -16,7 +16,7 @@ from app.models.sketch_session import SketchSessionStatus
 from app.models.sketch_session_event import SketchSessionEventType
 from app.models.submission import SubmissionStatus
 from app.models.upload import UploadStatus
-from app.models.user import User
+from app.models.user import User, UserStatus
 from app.repositories.idempotency import IdempotencyRepository
 from app.repositories.prompts import PromptRepository
 from app.repositories.sketch_sessions import SketchSessionRepository
@@ -242,12 +242,25 @@ class SubmissionService:
         prompt = await self._prompts.get_by_id(submission.prompt_id)
         sketch_session = await self._sessions.get_by_id(submission.sketch_session_id)
         upload = await self._uploads.get_by_id(submission.upload_id)
-        if user is None or prompt is None or sketch_session is None or upload is None:
+        if (
+            user is None
+            or prompt is None
+            or sketch_session is None
+            or upload is None
+            or user.deleted_at is not None
+            or user.status
+            not in {
+                UserStatus.incomplete,
+                UserStatus.active,
+            }
+        ):
             raise AppError(
                 code="submission_not_found",
                 message="The requested sketch could not be found.",
                 status_code=404,
             )
+
+        # Phase 11 will apply block filtering for viewer↔author here.
 
         expires_at = self._clock.now() + timedelta(
             seconds=self._settings.signed_read_expiry_seconds

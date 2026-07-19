@@ -269,7 +269,7 @@ async def test_recent_feed_returns_empty_page(
 
 @requires_postgres
 @pytest.mark.asyncio
-async def test_recent_feed_accepts_pagination_params(client: AsyncClient) -> None:
+async def test_recent_feed_rejects_invalid_cursor(client: AsyncClient) -> None:
     response = await client.get("/api/v1/feed/recent", params={"cursor": "abc", "limit": 10})
-    assert response.status_code == 200
-    assert response.json()["items"] == []
+    assert response.status_code == 422
+    assert response.json()["error"]["code"] == "invalid_cursor"

@@ -373,9 +373,15 @@ paths:
         - feed
       summary: Recent community feed
       description: |
-        Returns a reverse-chronological page of published Submissions.
-        Phase 4 may return an empty page until Submissions exist.
-        Available to guests and authenticated users.
+        Returns a reverse-chronological page of published Submissions
+        ordered by `published_at DESC, id DESC`. Soft-deleted, hidden,
+        removed, and suspended/deleted-author content is excluded.
+        Available to guests and authenticated users. When authenticated,
+        `is_owner` and `viewer_has_liked` reflect the viewer
+        (`viewer_has_liked` remains false until Likes land in Phase 9).
+        Pass an opaque `cursor` from a previous page to continue
+        keyset pagination without duplicates or skips under concurrent
+        inserts.
       parameters:
         - name: cursor
           in: query
@@ -406,9 +412,41 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/RecentFeed"
-              example:
-                items: []
-                next_cursor: null
+              examples:
+                empty:
+                  summary: Empty community feed
+                  value:
+                    items: []
+                    next_cursor: null
+                populated:
+                  summary: Populated reverse-chronological page
+                  value:
+                    items:
+                      - id: d4e5f6a7-b8c9-0123-def0-234567890123
+                        image_url: https://storage.example/display-signed
+                        thumbnail_url: https://storage.example/thumb-signed
+                        user:
+                          id: f7d7c950-2892-4b6c-9300-ef6c5cbcb2d1
+                          username: sketchy_matt
+                          display_name: Matt
+                          avatar_url: null
+                        prompt:
+                          id: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+                          prompt_date: "2026-07-18"
+                          word_1: Chocolate
+                          word_2: Coffee
+                          word_3: Banana
+                        timer_mode: countdown
+                        timer_seconds: 300
+                        caption_preview: A quiet coffee and banana sketch.
+                        like_count: 0
+                        reflection_count: 0
+                        viewer_has_liked: false
+                        is_owner: false
+                        published_at: "2026-07-18T20:12:00Z"
+                    next_cursor: null
+        "422":
+          $ref: "#/components/responses/ValidationError"
         "500":
           $ref: "#/components/responses/InternalError"
   /api/v1/sketch-sessions:
@@ -910,8 +948,10 @@ paths:
       summary: Get a Submission
       description: |
         Returns a published Submission. Available to guests and authenticated
-        users. Soft-deleted, hidden, and removed Submissions are not returned.
-        When authenticated, `is_owner` and `viewer_has_liked` reflect the viewer.
+        users. Soft-deleted, hidden, removed, and suspended/deleted-author
+        Submissions are not returned. When authenticated, `is_owner` and
+        `viewer_has_liked` reflect the viewer (`viewer_has_liked` remains
+        false until Likes land in Phase 9).
       parameters:
         - name: submission_id
           in: path
@@ -1647,8 +1687,9 @@ components:
     FeedItem:
       type: object
       description: |
-        Forward-compatible feed projection for a published Submission.
-        Phase 4 returns an empty items array; Phase 8 finalises the projection.
+        Feed projection for a published Submission. Includes image URLs,
+        user and Prompt summaries, timer metadata, caption preview,
+        Like/Reflection counts, viewer Like state, and ownership flags.
       required:
         - id
         - image_url

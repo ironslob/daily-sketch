@@ -2,7 +2,7 @@
 
 Native iOS creative journal with a FastAPI backend. Every user receives the same three-word Daily Prompt; guests can sketch before authenticating.
 
-This repository is a monorepo. Phase 7 delivers direct upload and Submission publication on top of Phase 6’s camera, Drafts, and Review flow.
+This repository is a monorepo. Phase 8 delivers the community feed and community Submission Detail on top of Phase 7’s publication flow.
 
 ## Prerequisites
 
@@ -48,6 +48,15 @@ make ios-build
 | `backend/` | FastAPI application, Alembic migrations, tests |
 | `ios/` | SwiftUI app (`DailySketch`) |
 | `spec/` | Product, design, architecture, implementation, infrastructure |
+
+## Phase 8 — Community Feed and Submission Detail
+
+- **Contract (guests + optional auth):**
+  - `GET /api/v1/feed/recent` — reverse-chronological cursor-paginated feed (`published_at DESC, id DESC`) with full `FeedItem` projections (image URLs, user/prompt summaries, timer metadata, caption preview, Like/Reflection counts, `viewer_has_liked`, `is_owner`).
+  - `GET /api/v1/submissions/{submission_id}` — community detail; excludes soft-deleted/hidden/removed content and suspended/deleted authors.
+- **Backend:** Keyset cursor pagination (`invalid_cursor` → 422), single joined query (no N+1), published + active-author filtering, Phase 11 block-filter seam. `viewer_has_liked` remains `false` until Phase 9; counts come from denormalised columns.
+- **iOS:** Home renders `SubmissionCard` list with pull-to-refresh and infinite scroll; artwork opens Detail; owner opens a Phase 10 public-profile placeholder. Detail shows owner row, prompt chips, date/timer, caption, placeholder social row (Like/Reflection/Share), and owner delete with confirmation. Shared `URLCache` backs image loading.
+- **Out of Phase 8:** Real Likes/Reflections (Phase 9), full public profiles/streaks/native share payload (Phase 10), reporting/blocking (Phase 11).
 
 ## Phase 7 — Direct Upload and Submission Publication
 

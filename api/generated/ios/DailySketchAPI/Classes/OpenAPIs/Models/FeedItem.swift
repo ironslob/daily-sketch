@@ -10,7 +10,7 @@ import Foundation
 import AnyCodable
 #endif
 
-/** Forward-compatible feed projection for a published Submission. Phase 4 returns an empty items array; Phase 8 finalises the projection.  */
+/** Feed projection for a published Submission. Includes image URLs, user and Prompt summaries, timer metadata, caption preview, Like/Reflection counts, viewer Like state, and ownership flags.  */
 public struct FeedItem: Codable, JSONEncodable, Hashable {
 
     public static let likeCountRule = NumericRule<Int>(minimum: 0, exclusiveMinimum: false, maximum: nil, exclusiveMaximum: false, multipleOf: nil)

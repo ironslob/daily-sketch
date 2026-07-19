@@ -400,8 +400,11 @@ final class RecordingUploadRepository: UploadServing, @unchecked Sendable {
 
 final class RecordingSubmissionRepository: SubmissionServing, @unchecked Sendable {
     private(set) var createCallCount = 0
+    private(set) var deleteCallCount = 0
+    private(set) var lastDeletedSubmissionId: UUID?
     private(set) var lastIdempotencyKey: String?
     var createError: Error?
+    var deleteError: Error?
     var nextSubmission: SubmissionModel?
 
     func createSubmission(
@@ -441,7 +444,11 @@ final class RecordingSubmissionRepository: SubmissionServing, @unchecked Sendabl
         throw PublicationAPIError.submissionNotFound
     }
 
-    func deleteSubmission(accessToken: String, submissionId: UUID) async throws {}
+    func deleteSubmission(accessToken: String, submissionId: UUID) async throws {
+        deleteCallCount += 1
+        lastDeletedSubmissionId = submissionId
+        if let deleteError { throw deleteError }
+    }
 }
 
 final class RecordingDirectUploader: DirectUploadTransporting, @unchecked Sendable {
