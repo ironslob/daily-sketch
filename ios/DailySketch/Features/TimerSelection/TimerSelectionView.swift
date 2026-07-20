@@ -7,37 +7,54 @@ struct TimerSelectionView: View {
     let onDismiss: () -> Void
     var isStarting: Bool = false
 
+    @State private var selectedDetent: PresentationDetent = .fraction(0.72)
+
     var body: some View {
-        VStack(spacing: AppSpacing.contentGapLarge) {
+        VStack(spacing: 0) {
             Capsule()
                 .fill(AppColors.outline)
-                .frame(width: 40, height: 5)
-                .padding(.top, AppSpacing.sm)
+                .frame(width: 48, height: 5)
+                .padding(.top, AppSpacing.md)
+                .padding(.bottom, AppSpacing.sm)
 
             Text("How long would you like to sketch?")
                 .font(AppTypography.title3)
                 .foregroundStyle(AppColors.textPrimary)
                 .multilineTextAlignment(.center)
                 .frame(maxWidth: .infinity)
+                .padding(.horizontal, AppSpacing.screenHorizontal)
+                .padding(.bottom, AppSpacing.md)
                 .accessibilityAddTraits(.isHeader)
 
-            VStack(spacing: 0) {
-                ForEach(TimerPreferenceOption.allCases) { option in
-                    timerRow(option)
-                    if option != TimerPreferenceOption.allCases.last {
-                        Divider().overlay(AppColors.divider)
+            ScrollView {
+                VStack(spacing: AppSpacing.xs) {
+                    ForEach(TimerPreferenceOption.allCases) { option in
+                        timerRow(option)
                     }
                 }
+                .padding(.horizontal, AppSpacing.screenHorizontal)
+                .padding(.bottom, AppSpacing.md)
             }
 
+            footer
+        }
+        .background(AppColors.background)
+        .presentationDetents([.fraction(0.72), .large], selection: $selectedDetent)
+        .presentationDragIndicator(.hidden)
+        .interactiveDismissDisabled(isStarting)
+    }
+
+    private var footer: some View {
+        VStack(spacing: AppSpacing.md) {
             Button {
                 rememberChoice.toggle()
             } label: {
                 HStack(spacing: AppSpacing.sm) {
                     Image(systemName: rememberChoice ? "checkmark.square.fill" : "square")
-                        .foregroundStyle(rememberChoice ? AppColors.primary : AppColors.textSecondary)
+                        .font(.body)
+                        .foregroundStyle(rememberChoice ? AppColors.primary : AppColors.outline)
                     Text("Remember this choice")
-                        .font(AppTypography.body)
+                        .font(AppTypography.bodySmall)
                         .foregroundStyle(AppColors.textSecondary)
                     Spacer()
                 }
@@ -54,19 +71,20 @@ struct TimerSelectionView: View {
             )
         }
         .padding(.horizontal, AppSpacing.screenHorizontal)
-        .padding(.bottom, AppSpacing.lg)
-        .background(AppColors.surfacePrimary)
-        .presentationDetents([.medium, .large])
-        .presentationDragIndicator(.hidden)
-        .interactiveDismissDisabled(isStarting)
-        .onDisappear {
-            // Dismiss without Start must not create a session — handled by caller
-            // only creating sessions from onStart.
+        .padding(.top, AppSpacing.md)
+        .padding(.bottom, AppSpacing.xl)
+        .background(AppColors.background)
+        .overlay(alignment: .top) {
+            Rectangle()
+                .fill(AppColors.divider)
+                .frame(height: 1)
         }
     }
 
     private func timerRow(_ option: TimerPreferenceOption) -> some View {
-        Button {
+        let isSelected = selectedOption == option
+
+        return Button {
             selectedOption = option
             UISelectionFeedbackGenerator().selectionChanged()
         } label: {
@@ -75,15 +93,32 @@ struct TimerSelectionView: View {
                     .font(AppTypography.bodyLarge)
                     .foregroundStyle(AppColors.textPrimary)
                 Spacer()
-                Image(systemName: selectedOption == option ? "largecircle.fill.circle" : "circle")
-                    .foregroundStyle(selectedOption == option ? AppColors.primary : AppColors.outline)
+                ZStack {
+                    Circle()
+                        .strokeBorder(
+                            isSelected ? AppColors.primary : AppColors.outline,
+                            lineWidth: 2
+                        )
+                        .frame(width: 24, height: 24)
+                    if isSelected {
+                        Circle()
+                            .fill(AppColors.primary)
+                            .frame(width: 12, height: 12)
+                    }
+                }
             }
+            .padding(.horizontal, AppSpacing.md)
             .padding(.vertical, AppSpacing.md)
-            .contentShape(Rectangle())
+            .frame(maxWidth: .infinity, minHeight: AppSpacing.minimumTouchTarget)
+            .contentShape(RoundedRectangle(cornerRadius: AppRadii.medium, style: .continuous))
+            .background(
+                RoundedRectangle(cornerRadius: AppRadii.medium, style: .continuous)
+                    .fill(isSelected ? AppColors.surfaceSecondary : Color.clear)
+            )
         }
         .buttonStyle(.plain)
         .accessibilityLabel(option.rawValue)
-        .accessibilityAddTraits(selectedOption == option ? [.isSelected] : [])
+        .accessibilityAddTraits(isSelected ? [.isSelected] : [])
     }
 }
 
