@@ -19,8 +19,10 @@ struct PrimaryButton: View {
             .frame(maxWidth: .infinity)
             .frame(height: AppSpacing.controlHeight)
             .background(AppColors.primary)
-            .clipShape(RoundedRectangle(cornerRadius: AppRadii.large, style: .continuous))
+            .clipShape(Capsule())
+            .appSoftShadow()
         }
+        .buttonStyle(.plain)
         .disabled(isDisabled)
         .opacity(isDisabled ? 0.5 : 1)
         .accessibilityLabel(title)

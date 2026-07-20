@@ -21,12 +21,12 @@ struct PromptGroup: View {
     private var gridLayout: some View {
         VStack(alignment: .leading, spacing: AppSpacing.contentGap) {
             if let first = words.first {
-                PromptWordCard(word: first)
+                PromptWordCard(word: first, style: .hero)
             }
             if words.count > 1 {
                 HStack(spacing: AppSpacing.contentGap) {
                     ForEach(Array(words.dropFirst().enumerated()), id: \.offset) { _, word in
-                        PromptWordCard(word: word)
+                        PromptWordCard(word: word, style: .compact)
                     }
                 }
             }
@@ -36,7 +36,7 @@ struct PromptGroup: View {
     private var stackedLayout: some View {
         VStack(alignment: .leading, spacing: AppSpacing.contentGap) {
             ForEach(Array(words.enumerated()), id: \.offset) { _, word in
-                PromptWordCard(word: word)
+                PromptWordCard(word: word, style: .stacked)
             }
         }
     }
@@ -47,6 +47,16 @@ struct PromptGroup: View {
         words: ["Chocolate", "Coffee", "Banana"],
         accessibilityLabel: "Today’s prompt: Chocolate, Coffee, Banana."
     )
+    .padding()
+    .background(AppColors.background)
+}
+
+#Preview("Accessibility stack") {
+    PromptGroup(
+        words: ["Chocolate", "Coffee", "Banana"],
+        accessibilityLabel: "Today’s prompt: Chocolate, Coffee, Banana."
+    )
+    .environment(\.dynamicTypeSize, .accessibility3)
     .padding()
     .background(AppColors.background)
 }

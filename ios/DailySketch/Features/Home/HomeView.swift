@@ -42,98 +42,13 @@ struct HomeView: View {
     @ViewBuilder
     private func content(_ model: HomeViewModel) -> some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: AppSpacing.contentGapLarge) {
-                Text("Today’s Inspiration")
-                    .font(AppTypography.display)
-                    .foregroundStyle(AppColors.textPrimary)
-
-                Text("Use all three words as inspiration for today’s sketch.")
-                    .font(AppTypography.bodyLarge)
-                    .foregroundStyle(AppColors.textSecondary)
-
-                if let offlineMessage = model.offlineIndicatorMessage {
-                    HStack(spacing: AppSpacing.sm) {
-                        Image(systemName: "wifi.slash")
-                            .foregroundStyle(AppColors.textSecondary)
-                            .accessibilityHidden(true)
-                        Text(offlineMessage)
-                            .font(AppTypography.caption)
-                            .foregroundStyle(AppColors.textSecondary)
-                    }
-                    .accessibilityElement(children: .combine)
-                    .accessibilityLabel(offlineMessage)
-                }
-
-                if model.isRefreshingPrompt {
-                    HStack(spacing: AppSpacing.sm) {
-                        ProgressView()
-                            .controlSize(.small)
-                        Text("Refreshing prompt…")
-                            .font(AppTypography.caption)
-                            .foregroundStyle(AppColors.textTertiary)
-                    }
-                    .accessibilityLabel("Refreshing today’s prompt")
-                }
-
-                if model.sketchFlow.showsRecoveryBanner {
-                    recoveryBanner(model)
-                }
-
-                if model.sketchFlow.changeTimerHintVisible {
-                    changeTimerHint(model)
-                }
-
-                if let message = model.sketchFlow.syncBannerMessage {
-                    Text(message)
-                        .font(AppTypography.caption)
-                        .foregroundStyle(AppColors.textTertiary)
-                }
-
-                if let message = model.sketchFlow.draftSavedBanner {
-                    Text(message)
-                        .font(AppTypography.caption)
-                        .foregroundStyle(AppColors.success)
-                }
-
-                promptSection(model)
-
-                if model.hasSketchedToday {
-                    sketchedTodaySection(model)
-                }
-
-                if model.sketchFlow.isCreatingSession {
-                    LoadingView(message: "Starting your sketch…")
-                }
-
-                PrimaryButton(
-                    title: model.primarySketchButtonTitle,
-                    action: { model.startSketch() },
-                    isDisabled: !model.canStartSketch || model.sketchFlow.isCreatingSession,
-                    systemImage: model.hasSketchedToday ? "plus" : nil
-                )
-                .accessibilityHint(
-                    model.hasSketchedToday
-                        ? "Starts another sketch for today’s prompt"
-                        : "Starts today’s timed sketch session"
-                )
-
-                if let draft = model.sketchFlow.recoverableDraft {
-                    DraftCardView(
-                        draft: draft,
-                        thumbnail: model.sketchFlow.recoverableDraftThumbnail,
-                        onContinue: { model.sketchFlow.reopenDraft(draft) },
-                        onDiscard: { showsDiscardDraftConfirmation = true }
-                    )
-                }
-
-                Text("Community Sketches")
-                    .font(AppTypography.title3)
-                    .foregroundStyle(AppColors.textPrimary)
-
-                feedSection(model)
+            VStack(alignment: .leading, spacing: AppSpacing.section) {
+                inspirationSection(model)
+                communitySection(model)
             }
             .padding(.horizontal, AppSpacing.screenHorizontal)
-            .padding(.vertical, AppSpacing.lg)
+            .padding(.top, AppSpacing.md)
+            .padding(.bottom, AppSpacing.section)
         }
         .refreshable {
             await model.refresh()
@@ -320,6 +235,105 @@ struct HomeView: View {
         }
     }
 
+    private func inspirationSection(_ model: HomeViewModel) -> some View {
+        VStack(alignment: .leading, spacing: AppSpacing.contentGapLarge) {
+            VStack(alignment: .leading, spacing: AppSpacing.xs) {
+                Text("Today’s Inspiration")
+                    .font(AppTypography.display)
+                    .foregroundStyle(AppColors.textPrimary)
+
+                Text("Use all three words as inspiration for today’s sketch.")
+                    .font(AppTypography.bodyLarge)
+                    .foregroundStyle(AppColors.textSecondary)
+            }
+
+            if let offlineMessage = model.offlineIndicatorMessage {
+                HStack(spacing: AppSpacing.sm) {
+                    Image(systemName: "wifi.slash")
+                        .foregroundStyle(AppColors.textSecondary)
+                        .accessibilityHidden(true)
+                    Text(offlineMessage)
+                        .font(AppTypography.caption)
+                        .foregroundStyle(AppColors.textSecondary)
+                }
+                .accessibilityElement(children: .combine)
+                .accessibilityLabel(offlineMessage)
+            }
+
+            if model.isRefreshingPrompt {
+                HStack(spacing: AppSpacing.sm) {
+                    ProgressView()
+                        .controlSize(.small)
+                    Text("Refreshing prompt…")
+                        .font(AppTypography.caption)
+                        .foregroundStyle(AppColors.textTertiary)
+                }
+                .accessibilityLabel("Refreshing today’s prompt")
+            }
+
+            if model.sketchFlow.showsRecoveryBanner {
+                recoveryBanner(model)
+            }
+
+            if model.sketchFlow.changeTimerHintVisible {
+                changeTimerHint(model)
+            }
+
+            if let message = model.sketchFlow.syncBannerMessage {
+                Text(message)
+                    .font(AppTypography.caption)
+                    .foregroundStyle(AppColors.textTertiary)
+            }
+
+            if let message = model.sketchFlow.draftSavedBanner {
+                Text(message)
+                    .font(AppTypography.caption)
+                    .foregroundStyle(AppColors.success)
+            }
+
+            promptSection(model)
+
+            if model.hasSketchedToday {
+                sketchedTodaySection(model)
+            }
+
+            if model.sketchFlow.isCreatingSession {
+                LoadingView(message: "Starting your sketch…")
+            }
+
+            PrimaryButton(
+                title: model.primarySketchButtonTitle,
+                action: { model.startSketch() },
+                isDisabled: !model.canStartSketch || model.sketchFlow.isCreatingSession,
+                systemImage: model.hasSketchedToday ? "plus" : nil
+            )
+            .accessibilityHint(
+                model.hasSketchedToday
+                    ? "Starts another sketch for today’s prompt"
+                    : "Starts today’s timed sketch session"
+            )
+
+            if let draft = model.sketchFlow.recoverableDraft {
+                DraftCardView(
+                    draft: draft,
+                    thumbnail: model.sketchFlow.recoverableDraftThumbnail,
+                    onContinue: { model.sketchFlow.reopenDraft(draft) },
+                    onDiscard: { showsDiscardDraftConfirmation = true }
+                )
+            }
+        }
+    }
+
+    private func communitySection(_ model: HomeViewModel) -> some View {
+        VStack(alignment: .leading, spacing: AppSpacing.contentGap) {
+            Text("Community Sketches")
+                .font(AppTypography.title3)
+                .foregroundStyle(AppColors.textPrimary)
+
+            feedSection(model)
+        }
+    }
+
     private func sketchedTodaySection(_ model: HomeViewModel) -> some View {
         VStack(alignment: .leading, spacing: AppSpacing.md) {
             HStack(spacing: AppSpacing.sm) {
@@ -396,10 +410,10 @@ struct HomeView: View {
         switch model.promptState {
         case .loading:
             VStack(alignment: .leading, spacing: AppSpacing.contentGap) {
-                LoadingSkeleton(height: 72)
+                LoadingSkeleton(height: 168)
                 HStack(spacing: AppSpacing.contentGap) {
-                    LoadingSkeleton(height: 72)
-                    LoadingSkeleton(height: 72)
+                    LoadingSkeleton(height: 168)
+                    LoadingSkeleton(height: 168)
                 }
             }
             .accessibilityLabel("Loading today’s prompt")

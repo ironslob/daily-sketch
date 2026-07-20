@@ -19,8 +19,9 @@ struct SecondaryButton: View {
             .frame(maxWidth: .infinity)
             .frame(height: AppSpacing.controlHeight)
             .background(AppColors.surfaceTertiary)
-            .clipShape(RoundedRectangle(cornerRadius: AppRadii.large, style: .continuous))
+            .clipShape(Capsule())
         }
+        .buttonStyle(.plain)
         .disabled(isDisabled)
         .opacity(isDisabled ? 0.5 : 1)
         .accessibilityLabel(title)
