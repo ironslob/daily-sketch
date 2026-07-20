@@ -131,6 +131,13 @@ class MinioStorageAdapter:
         body = response["Body"]
         return await asyncio.to_thread(body.read)
 
+    async def ping(self) -> bool:
+        try:
+            await asyncio.to_thread(partial(self._client.head_bucket, Bucket=self._bucket))
+        except ClientError:
+            return False
+        return True
+
     async def put_object(
         self,
         *,

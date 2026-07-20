@@ -15,8 +15,10 @@ settings:
     MARKETING_VERSION: "0.1.0"
     GENERATE_INFOPLIST_FILE: YES
 configs:
-  Debug: debug
-  Release: release
+  Debug-Local: debug
+  Debug-Development: debug
+  Release-Staging: release
+  Release-Production: release
 packages:
   DailySketchAPI:
     path: ../api/generated/ios
@@ -35,17 +37,24 @@ targets:
         API_BASE_URL: $(API_BASE_URL)
         APP_ENVIRONMENT: $(APP_ENVIRONMENT)
         DESCOPE_PROJECT_ID: $(DESCOPE_PROJECT_ID)
+        SUPPORT_URL: $(SUPPORT_URL)
+        PRIVACY_URL: $(PRIVACY_URL)
+        TERMS_URL: $(TERMS_URL)
+        SENTRY_DSN: $(SENTRY_DSN)
+        SHOW_ENVIRONMENT_BADGE: $(SHOW_ENVIRONMENT_BADGE)
+        ANALYTICS_ENVIRONMENT: $(ANALYTICS_ENVIRONMENT)
         NSCameraUsageDescription: Daily Sketch uses the camera so you can photograph your drawing and share it with the community.
         NSPhotoLibraryUsageDescription: Daily Sketch accesses your photo library so you can choose an existing sketch photo to review and share.
     configFiles:
-      Debug: Config/Debug.xcconfig
-      Release: Config/Release.xcconfig
+      Debug-Local: Config/Debug-Local.xcconfig
+      Debug-Development: Config/Debug-Development.xcconfig
+      Release-Staging: Config/Release-Staging.xcconfig
+      Release-Production: Config/Release-Production.xcconfig
     dependencies:
       - package: DailySketchAPI
       - package: DescopeKit
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.example.dailysketch.dev
         PRODUCT_NAME: DailySketch
         INFOPLIST_FILE: DailySketch/Resources/Info.plist
         GENERATE_INFOPLIST_FILE: NO
@@ -65,6 +74,11 @@ targets:
       - path: DailySketchTests
     dependencies:
       - target: DailySketch
+    configFiles:
+      Debug-Local: Config/Debug-Local.xcconfig
+      Debug-Development: Config/Debug-Development.xcconfig
+      Release-Staging: Config/Release-Staging.xcconfig
+      Release-Production: Config/Release-Production.xcconfig
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.example.dailysketch.dev.tests
@@ -78,6 +92,11 @@ targets:
       - path: DailySketchUITests
     dependencies:
       - target: DailySketch
+    configFiles:
+      Debug-Local: Config/Debug-Local.xcconfig
+      Debug-Development: Config/Debug-Development.xcconfig
+      Release-Staging: Config/Release-Staging.xcconfig
+      Release-Production: Config/Release-Production.xcconfig
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.example.dailysketch.dev.uitests

@@ -1,16 +1,22 @@
 .PHONY: help up down logs backend-install backend-run backend-test backend-lint backend-typecheck \
 	db-migrate db-reset seed api-validate api-generate-ios api-check-generated test clean-local \
-	repo-checks docker-build ios-generate ios-build ios-test account-deletion-finalize
+	repo-checks docker-build ios-generate ios-build ios-test account-deletion-finalize \
+	staging-up staging-smoke backup-postgres restore-postgres perf-profile \
+	job-upload-cleanup job-sketch-session-cleanup job-idempotency-cleanup \
+	job-deleted-media-cleanup job-missing-prompt-check jobs-dry-run
 
 ROOT := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
 BACKEND := $(ROOT)/backend
 COMPOSE := docker compose -f $(ROOT)/docker-compose.yml
+STAGING_COMPOSE := docker compose -f $(ROOT)/docker-compose.yml -f $(ROOT)/docker-compose.staging.yml
 
 help:
 	@echo "Daily Sketch Make targets:"
-	@echo "  up / down / logs / clean-local"
+	@echo "  up / down / logs / clean-local / staging-up / staging-smoke"
 	@echo "  backend-install / backend-run / backend-test / backend-lint / backend-typecheck"
 	@echo "  db-migrate / db-reset / seed / account-deletion-finalize"
+	@echo "  job-* cleanup targets / jobs-dry-run / perf-profile"
+	@echo "  backup-postgres / restore-postgres BACKUP=path"
 	@echo "  api-validate / api-generate-ios / api-check-generated"
 	@echo "  repo-checks / docker-build / ios-generate / ios-build / ios-test / test"
 
@@ -22,6 +28,15 @@ down:
 
 logs:
 	$(COMPOSE) logs -f
+
+staging-up:
+	$(STAGING_COMPOSE) up -d postgres minio minio-init backend
+
+staging-smoke:
+	@curl -fsS http://localhost:8080/health/live >/dev/null
+	@curl -fsS http://localhost:8080/health/ready >/dev/null
+	@curl -fsS http://localhost:8080/health/version >/dev/null
+	@echo "Staging smoke checks passed."
 
 backend-install:
 	cd $(BACKEND) && uv venv .venv --python 3.14 && uv pip install -e ".[dev]"
@@ -57,6 +72,38 @@ seed:
 account-deletion-finalize:
 	cd $(BACKEND) && . .venv/bin/activate && python -m app.jobs.account_deletion
 
+job-upload-cleanup:
+	cd $(BACKEND) && . .venv/bin/activate && python -m app.jobs.upload_cleanup
+
+job-sketch-session-cleanup:
+	cd $(BACKEND) && . .venv/bin/activate && python -m app.jobs.sketch_session_cleanup
+
+job-idempotency-cleanup:
+	cd $(BACKEND) && . .venv/bin/activate && python -m app.jobs.idempotency_cleanup
+
+job-deleted-media-cleanup:
+	cd $(BACKEND) && . .venv/bin/activate && python -m app.jobs.deleted_media_cleanup
+
+job-missing-prompt-check:
+	cd $(BACKEND) && . .venv/bin/activate && python -m app.jobs.missing_prompt_check
+
+jobs-dry-run:
+	cd $(BACKEND) && . .venv/bin/activate && python -m app.jobs.upload_cleanup --dry-run
+	cd $(BACKEND) && . .venv/bin/activate && python -m app.jobs.sketch_session_cleanup --dry-run
+	cd $(BACKEND) && . .venv/bin/activate && python -m app.jobs.idempotency_cleanup --dry-run
+	cd $(BACKEND) && . .venv/bin/activate && python -m app.jobs.deleted_media_cleanup --dry-run
+	cd $(BACKEND) && . .venv/bin/activate && python -m app.jobs.missing_prompt_check --dry-run
+
+backup-postgres:
+	bash $(ROOT)/scripts/ops/backup-postgres.sh
+
+restore-postgres:
+	@if [ -z "$(BACKUP)" ]; then echo "Usage: make restore-postgres BACKUP=path/to/backup.sql" >&2; exit 1; fi
+	bash $(ROOT)/scripts/ops/restore-postgres.sh "$(BACKUP)"
+
+perf-profile:
+	cd $(BACKEND) && . .venv/bin/activate && python $(ROOT)/scripts/perf/load_profile.py
+
 api-validate:
 	bash $(ROOT)/scripts/api-validate.sh
 
@@ -80,7 +127,7 @@ ios-build:
 		-project DailySketch.xcodeproj \
 		-scheme DailySketch \
 		-destination 'platform=iOS Simulator,name=iPhone 16,OS=18.1' \
-		-configuration Debug \
+		-configuration Debug-Local \
 		build
 
 ios-test:
@@ -88,7 +135,7 @@ ios-test:
 		-project DailySketch.xcodeproj \
 		-scheme DailySketch \
 		-destination 'platform=iOS Simulator,name=iPhone 16,OS=18.1' \
-		-configuration Debug \
+		-configuration Debug-Local \
 		test
 
 test: backend-test api-validate repo-checks

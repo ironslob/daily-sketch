@@ -46,6 +46,7 @@ DerivedData/
 Package.resolved
 
 # Docker / local data
+.backups/
 .minio-data/
 .postgres-data/
 docker-data/

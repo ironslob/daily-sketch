@@ -73,6 +73,10 @@ class StorageAdapter(Protocol):
         """Write bytes to an object key."""
         ...
 
+    async def ping(self) -> bool:
+        """Verify storage connectivity."""
+        ...
+
     def derivative_key(self, *, original_key: str, kind: str) -> str:
         """Derive a stable object key for a display or thumbnail derivative."""
         ...
@@ -110,6 +114,9 @@ class NotConfiguredStorageAdapter:
         body: bytes,
         content_type: str,
     ) -> ObjectMetadata:
+        raise NotImplementedError("Storage adapter is not configured.")
+
+    async def ping(self) -> bool:
         raise NotImplementedError("Storage adapter is not configured.")
 
     def derivative_key(self, *, original_key: str, kind: str) -> str:

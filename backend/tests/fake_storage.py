@@ -95,5 +95,8 @@ class InMemoryStorageAdapter:
             return f"{prefix}/{kind}"
         return f"{original_key}/{kind}"
 
+    async def ping(self) -> bool:
+        return True
+
     def has_object(self, key: str) -> bool:
         return key in self._objects

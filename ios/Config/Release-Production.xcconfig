@@ -1,0 +1,13 @@
+#include "Base.xcconfig"
+
+PRODUCT_BUNDLE_IDENTIFIER = com.example.dailysketch
+API_BASE_URL = https:/$()/api.dailysketch.example
+APP_ENVIRONMENT = production
+DESCOPE_PROJECT_ID = replace-me-production
+ANALYTICS_ENVIRONMENT = production
+LOGGING_LEVEL = warning
+SHOW_ENVIRONMENT_BADGE = NO
+
+DEBUG_INFORMATION_FORMAT = dwarf-with-dsym
+SWIFT_COMPILATION_MODE = wholemodule
+SWIFT_OPTIMIZATION_LEVEL = -O

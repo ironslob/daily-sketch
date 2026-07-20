@@ -1,0 +1,13 @@
+#include "Base.xcconfig"
+
+PRODUCT_BUNDLE_IDENTIFIER = com.example.dailysketch.staging
+API_BASE_URL = https:/$()/api.staging.dailysketch.example
+APP_ENVIRONMENT = staging
+DESCOPE_PROJECT_ID = replace-me-staging
+ANALYTICS_ENVIRONMENT = staging
+LOGGING_LEVEL = info
+SHOW_ENVIRONMENT_BADGE = YES
+
+DEBUG_INFORMATION_FORMAT = dwarf-with-dsym
+SWIFT_COMPILATION_MODE = wholemodule
+SWIFT_OPTIMIZATION_LEVEL = -O

@@ -2,7 +2,16 @@
 
 Native iOS creative journal with a FastAPI backend. Every user receives the same three-word Daily Prompt; guests can sketch before authenticating.
 
-This repository is a monorepo. Phase 12 delivers local reminders, recovery hardening, accessibility polish, privacy-conscious analytics, and offline-aware Home behaviour on top of Phase 11’s safety features.
+This repository is a monorepo. Phase 13 adds production hardening, observability, cleanup jobs, staging rehearsal, iOS release polish, and release/rollback documentation.
+
+## Phase 13 — Production Hardening and Release Readiness
+
+- **Backend:** Request timeouts, body size limits, in-process rate limits, tunable DB pool + statement timeout, storage readiness ping, `/metrics`, optional Sentry/OTLP, log redaction, staging/production fail-fast settings.
+- **Jobs:** Upload/session/idempotency/deleted-media cleanup, missing-prompt check, account deletion finalize (`make jobs-dry-run`).
+- **Ops:** `docs/ops/` — security/performance reviews, backup-restore, rollback, staging, runbooks, alerts, scheduled jobs.
+- **iOS:** Privacy Manifest, four build configs (Debug Local/Development, Release Staging/Production), legal links, environment badge, DSN-gated crash reporting hook.
+- **Release:** `docs/release/` — E2E checklist, App Store metadata template, TestFlight runbook, physical-device matrix (owner-run).
+- **Staging:** `make staging-up` + `make staging-smoke` (port 8080).
 
 ## Prerequisites
 

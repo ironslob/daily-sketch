@@ -1,9 +1,16 @@
-// Shared Debug / Release base settings.
+// Shared build settings for all configurations.
 IPHONEOS_DEPLOYMENT_TARGET = 18.0
 SWIFT_VERSION = 6.0
-PRODUCT_BUNDLE_IDENTIFIER = com.example.dailysketch.dev
-// Owner must supply the Apple Developer Team ID before signed device builds.
+MARKETING_VERSION = 0.1.0
+CURRENT_PROJECT_VERSION = 1
+
+// Owner must supply Apple Developer Team ID before signed device/TestFlight builds.
 // DEVELOPMENT_TEAM =
-API_BASE_URL = http:/$()/localhost:8000
-APP_ENVIRONMENT = local
-DESCOPE_PROJECT_ID = replace-me
+
+SUPPORT_URL = https:/$()/example.com/daily-sketch/support
+PRIVACY_URL = https:/$()/example.com/daily-sketch/privacy
+TERMS_URL = https:/$()/example.com/daily-sketch/terms
+SENTRY_DSN =
+ANALYTICS_ENVIRONMENT = local
+LOGGING_LEVEL = debug
+SHOW_ENVIRONMENT_BADGE = YES

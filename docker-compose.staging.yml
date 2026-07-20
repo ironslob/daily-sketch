@@ -1,0 +1,36 @@
+# Staging-like compose profile for release rehearsal.
+# Usage: docker compose -f docker-compose.yml -f docker-compose.staging.yml up
+
+services:
+  minio:
+    environment:
+      MINIO_ROOT_USER: staging-local-access-key
+      MINIO_ROOT_PASSWORD: staging-local-secret-key  # pragma: allowlist secret
+
+  minio-init:
+    environment:
+      MINIO_ROOT_USER: staging-local-access-key
+      MINIO_ROOT_PASSWORD: staging-local-secret-key  # pragma: allowlist secret
+
+  backend:
+    environment:
+      APP_ENV: staging
+      LOG_LEVEL: INFO
+      METRICS_ENABLED: "true"
+      REQUEST_TIMEOUT_SECONDS: "30"
+      MAX_REQUEST_BODY_BYTES: "1048576"
+      DB_POOL_SIZE: "5"
+      DB_MAX_OVERFLOW: "5"
+      DB_SSL_REQUIRE: "false"
+      RATE_LIMIT_DEFAULT_MAX: "120"
+      RELEASE_VERSION: ${RELEASE_VERSION:-0.1.0-staging}
+      COMMIT_SHA: ${COMMIT_SHA:-local}
+      BUILD_TIMESTAMP: ${BUILD_TIMESTAMP:-local}
+      DESCOPE_PROJECT_ID: staging-local-project
+      DESCOPE_ISSUER: https://api.descope.com/v1/apps/staging-local-project
+      DESCOPE_AUDIENCE: staging-local-audience
+      MODERATION_OPERATOR_TOKEN: staging-local-moderation-token  # pragma: allowlist secret
+      STORAGE_ACCESS_KEY: staging-local-access-key
+      STORAGE_SECRET_KEY: staging-local-secret-key  # pragma: allowlist secret
+    ports:
+      - "8080:8000"

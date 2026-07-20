@@ -8,6 +8,18 @@
 	<string>$(APP_ENVIRONMENT)</string>
 	<key>DESCOPE_PROJECT_ID</key>
 	<string>$(DESCOPE_PROJECT_ID)</string>
+	<key>SUPPORT_URL</key>
+	<string>$(SUPPORT_URL)</string>
+	<key>PRIVACY_URL</key>
+	<string>$(PRIVACY_URL)</string>
+	<key>TERMS_URL</key>
+	<string>$(TERMS_URL)</string>
+	<key>SENTRY_DSN</key>
+	<string>$(SENTRY_DSN)</string>
+	<key>SHOW_ENVIRONMENT_BADGE</key>
+	<string>$(SHOW_ENVIRONMENT_BADGE)</string>
+	<key>ANALYTICS_ENVIRONMENT</key>
+	<string>$(ANALYTICS_ENVIRONMENT)</string>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleExecutable</key>

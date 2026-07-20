@@ -62,7 +62,13 @@ async def test_ready_ok_response_matches_contract(
     mock_session.__aenter__ = AsyncMock(return_value=mock_session)
     mock_session.__aexit__ = AsyncMock(return_value=None)
 
-    with patch("app.api.health.SessionLocal", return_value=mock_session):
+    with (
+        patch("app.api.health.SessionLocal", return_value=mock_session),
+        patch("app.api.health.get_storage_adapter") as mock_storage_factory,
+    ):
+        mock_storage = AsyncMock()
+        mock_storage.ping = AsyncMock(return_value=True)
+        mock_storage_factory.return_value = mock_storage
         response = await client.get("/health/ready")
 
     assert response.status_code == 200
@@ -79,7 +85,13 @@ async def test_ready_unavailable_response_matches_contract(
     mock_session.__aenter__ = AsyncMock(return_value=mock_session)
     mock_session.__aexit__ = AsyncMock(return_value=None)
 
-    with patch("app.api.health.SessionLocal", return_value=mock_session):
+    with (
+        patch("app.api.health.SessionLocal", return_value=mock_session),
+        patch("app.api.health.get_storage_adapter") as mock_storage_factory,
+    ):
+        mock_storage = AsyncMock()
+        mock_storage.ping = AsyncMock(return_value=True)
+        mock_storage_factory.return_value = mock_storage
         response = await client.get("/health/ready")
 
     assert response.status_code == 503

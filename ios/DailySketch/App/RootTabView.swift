@@ -12,6 +12,10 @@ struct RootTabView: View {
                     .navigationDestination(for: AppRoute.self) { route in
                         destination(for: route)
                     }
+                    .overlay(alignment: .topTrailing) {
+                        EnvironmentBadge(environment: AppEnvironment.current)
+                            .padding(8)
+                    }
             }
             .tabItem {
                 Label("Home", systemImage: "house")

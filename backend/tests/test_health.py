@@ -30,7 +30,13 @@ async def test_ready_returns_ok_when_database_available(client: AsyncClient) -> 
     mock_session.__aenter__ = AsyncMock(return_value=mock_session)
     mock_session.__aexit__ = AsyncMock(return_value=None)
 
-    with patch("app.api.health.SessionLocal", return_value=mock_session):
+    mock_storage = AsyncMock()
+    mock_storage.ping = AsyncMock(return_value=True)
+
+    with (
+        patch("app.api.health.SessionLocal", return_value=mock_session),
+        patch("app.api.health.get_storage_adapter", return_value=mock_storage),
+    ):
         response = await client.get("/health/ready")
 
     assert response.status_code == 200
@@ -38,6 +44,16 @@ async def test_ready_returns_ok_when_database_available(client: AsyncClient) -> 
     assert body["status"] == "ok"
     assert body["checks"]["database"] == "ok"
     assert body["checks"]["storage_config"] == "ok"
+    assert body["checks"]["storage"] == "ok"
+
+
+@pytest.mark.asyncio
+async def test_version_includes_release_metadata(client: AsyncClient) -> None:
+    response = await client.get("/health/version")
+    assert response.status_code == 200
+    body = response.json()
+    assert body["release_version"] == "0.1.0"
+    assert "environment" in body
 
 
 @pytest.mark.asyncio
@@ -47,7 +63,13 @@ async def test_ready_returns_503_when_database_unavailable(client: AsyncClient) 
     mock_session.__aenter__ = AsyncMock(return_value=mock_session)
     mock_session.__aexit__ = AsyncMock(return_value=None)
 
-    with patch("app.api.health.SessionLocal", return_value=mock_session):
+    mock_storage = AsyncMock()
+    mock_storage.ping = AsyncMock(return_value=True)
+
+    with (
+        patch("app.api.health.SessionLocal", return_value=mock_session),
+        patch("app.api.health.get_storage_adapter", return_value=mock_storage),
+    ):
         response = await client.get("/health/ready")
 
     assert response.status_code == 503

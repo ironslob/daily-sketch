@@ -191,11 +191,19 @@ struct SettingsView: View {
                 dependencies.navigation.profilePath.append(.blockedUsers)
             }
             .accessibilityLabel("Blocked Users")
+            if let url = LegalLinks.support {
+                Link("Support", destination: url)
+                    .accessibilityLabel("Support")
+            }
+            if let url = LegalLinks.privacy {
+                Link("Privacy Policy", destination: url)
+                    .accessibilityLabel("Privacy Policy")
+            }
+            if let url = LegalLinks.terms {
+                Link("Terms of Service", destination: url)
+                    .accessibilityLabel("Terms of Service")
+            }
             Text("Community Guidelines")
-                .foregroundStyle(AppColors.textSecondary)
-            Text("Privacy Policy")
-                .foregroundStyle(AppColors.textSecondary)
-            Text("Terms of Service")
                 .foregroundStyle(AppColors.textSecondary)
         }
     }

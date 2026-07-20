@@ -1,6 +1,24 @@
 import XCTest
 
 final class DailySketchUITests: XCTestCase {
+    func testLaunchShowsHomeFeedAndTimerEntry() throws {
+        let app = XCUIApplication()
+        app.launch()
+
+        let homeTab = app.tabBars.buttons["Home"]
+        XCTAssertTrue(homeTab.waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Today’s Inspiration"].exists)
+        XCTAssertTrue(app.buttons["Start Sketch"].exists)
+
+        app.buttons["Start Sketch"].tap()
+        XCTAssertTrue(
+            app.staticTexts.matching(NSPredicate(format: "label CONTAINS[c] 'minute'")).firstMatch
+                .waitForExistence(timeout: 5)
+                || app.buttons.matching(NSPredicate(format: "label CONTAINS[c] 'timer'")).firstMatch
+                .waitForExistence(timeout: 2)
+        )
+    }
+
     func testLaunchShowsHomeAndProfileTabs() throws {
         let app = XCUIApplication()
         app.launch()

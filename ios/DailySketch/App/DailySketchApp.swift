@@ -13,6 +13,7 @@ struct DailySketchApp: App {
             diskCapacity: diskCapacity,
             diskPath: "daily-sketch-image-cache"
         )
+        CrashReportingClient.start()
     }
 
     var body: some Scene {

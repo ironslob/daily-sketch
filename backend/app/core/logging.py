@@ -8,6 +8,7 @@ import sys
 from datetime import UTC, datetime
 from typing import Any
 
+from app.core.redaction import redact_string, redact_value
 from app.core.settings import Settings
 
 _STRUCTURED_KEYS = (
@@ -30,14 +31,14 @@ class JsonLogFormatter(logging.Formatter):
             "timestamp": datetime.now(UTC).isoformat().replace("+00:00", "Z"),
             "level": record.levelname,
             "logger": record.name,
-            "message": record.getMessage(),
+            "message": redact_string(record.getMessage()),
         }
         for key in _STRUCTURED_KEYS:
             value = getattr(record, key, None)
             if value is not None and value != "":
-                payload[key] = value
+                payload[key] = redact_value(value)
         if record.exc_info:
-            payload["exception"] = self.formatException(record.exc_info)
+            payload["exception"] = redact_string(self.formatException(record.exc_info))
         return json.dumps(payload, default=str)
 
 
