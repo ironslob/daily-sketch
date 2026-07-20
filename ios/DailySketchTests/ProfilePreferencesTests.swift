@@ -120,7 +120,13 @@ final class SettingsViewModelTests: XCTestCase {
             profileUpdater: meFetcher
         )
         await store.signIn(displayName: "Ada")
-        let viewModel = SettingsViewModel(auth: store, preferencesService: meFetcher)
+        let viewModel = SettingsViewModel(
+            auth: store,
+            preferencesService: meFetcher,
+            reminderSync: ReminderPreferenceSync(scheduler: InMemoryReminderScheduler()),
+            appearanceStore: AppearanceStore(),
+            analytics: InMemoryAnalyticsClient()
+        )
         await viewModel.load()
         XCTAssertEqual(viewModel.selectedTimer, .threeMinutes)
         XCTAssertEqual(viewModel.preferences.appearance, "dark")

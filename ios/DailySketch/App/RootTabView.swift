@@ -6,7 +6,7 @@ struct RootTabView: View {
     var body: some View {
         @Bindable var navigation = dependencies.navigation
 
-        TabView {
+        TabView(selection: $navigation.selectedTab) {
             NavigationStack(path: $navigation.homePath) {
                 HomeView()
                     .navigationDestination(for: AppRoute.self) { route in
@@ -16,6 +16,7 @@ struct RootTabView: View {
             .tabItem {
                 Label("Home", systemImage: "house")
             }
+            .tag(AppTab.home)
 
             NavigationStack(path: $navigation.profilePath) {
                 ProfileView(mode: .own)
@@ -26,8 +27,14 @@ struct RootTabView: View {
             .tabItem {
                 Label("Profile", systemImage: "person")
             }
+            .tag(AppTab.profile)
         }
         .tint(AppColors.primary)
+        .onChange(of: dependencies.auth.isAuthenticated) { _, isAuthenticated in
+            if isAuthenticated {
+                Task { await dependencies.hydrateUserPreferences() }
+            }
+        }
         .onChange(of: dependencies.auth.needsProfileCompletion) { _, needsCompletion in
             guard needsCompletion else { return }
             presentProfileCompletion()
@@ -58,6 +65,7 @@ struct RootTabView: View {
                     safetyService: dependencies.safetyRepository,
                     isAuthenticated: { dependencies.auth.isAuthenticated },
                     accessTokenProvider: { dependencies.auth.accessToken },
+                    analytics: dependencies.analytics,
                     onDeleted: {
                         dependencies.navigation.feedNeedsRefresh = true
                     },

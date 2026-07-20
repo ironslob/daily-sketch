@@ -13,10 +13,19 @@ final class ProfileCompletionViewModel {
 
     private let auth: AuthSessionStore
     private let preferencesService: (any PreferencesServing)?
+    private let reminderSync: ReminderPreferenceSync?
+    private let analytics: (any AnalyticsTracking)?
 
-    init(auth: AuthSessionStore, preferencesService: (any PreferencesServing)? = nil) {
+    init(
+        auth: AuthSessionStore,
+        preferencesService: (any PreferencesServing)? = nil,
+        reminderSync: ReminderPreferenceSync? = nil,
+        analytics: (any AnalyticsTracking)? = nil
+    ) {
         self.auth = auth
         self.preferencesService = preferencesService
+        self.reminderSync = reminderSync
+        self.analytics = analytics
         self.displayName = auth.currentUser?.displayName ?? ""
         self.username = auth.currentUser?.username ?? ""
     }
@@ -52,7 +61,18 @@ final class ProfileCompletionViewModel {
                 if prefs.notificationTimeLocal == nil {
                     prefs.notificationTimeLocal = "09:00:00"
                 }
+                if let reminderSync {
+                    var status = await reminderSync.scheduler.authorizationStatus()
+                    if status == .notDetermined {
+                        let granted = await reminderSync.scheduler.requestAuthorization()
+                        status = granted ? .authorized : .denied
+                    }
+                    if status == .authorized || status == .provisional {
+                        await reminderSync.sync(preferences: prefs)
+                    }
+                }
                 _ = try await preferencesService.updatePreferences(accessToken: token, preferences: prefs)
+                analytics?.track(.reminderEnabled)
             }
             return true
         } catch {

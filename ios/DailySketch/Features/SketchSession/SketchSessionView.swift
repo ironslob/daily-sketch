@@ -25,7 +25,9 @@ struct SketchSessionView: View {
                         .font(AppTypography.timer)
                         .foregroundStyle(AppColors.textPrimary)
                         .monospacedDigit()
-                        .accessibilityLabel("Time remaining \(model.formattedCountdown)")
+                        .accessibilityElement(children: .ignore)
+                        .accessibilityLabel("Time remaining")
+                        .accessibilityValue(model.formattedCountdown)
                 } else {
                     VStack(spacing: AppSpacing.sm) {
                         Text("Sketching…")
@@ -34,7 +36,9 @@ struct SketchSessionView: View {
                         Text(model.formattedElapsed)
                             .font(AppTypography.title3.monospacedDigit())
                             .foregroundStyle(AppColors.textTertiary)
-                            .accessibilityLabel("Elapsed \(model.formattedElapsed)")
+                            .accessibilityElement(children: .ignore)
+                            .accessibilityLabel("Elapsed time")
+                            .accessibilityValue(model.formattedElapsed)
                     }
                 }
 

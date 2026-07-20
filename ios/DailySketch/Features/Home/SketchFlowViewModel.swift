@@ -42,6 +42,7 @@ final class SketchFlowViewModel {
     private let directUploader: (any DirectUploadTransporting)?
     private let publishedStore: (any PublishedSubmissionStoring)?
     private let dateProvider: any DateProviding
+    private let analytics: (any AnalyticsTracking)?
     private let onPublishedToday: (() -> Void)?
     private var cachedAuthenticatedPreference: TimerPreferenceOption?
     private var replacingImageInReview = false
@@ -62,6 +63,7 @@ final class SketchFlowViewModel {
         directUploader: (any DirectUploadTransporting)? = nil,
         publishedStore: (any PublishedSubmissionStoring)? = nil,
         dateProvider: any DateProviding = SystemDateProvider(),
+        analytics: (any AnalyticsTracking)? = nil,
         onPublishedToday: (() -> Void)? = nil
     ) {
         self.auth = auth
@@ -77,6 +79,7 @@ final class SketchFlowViewModel {
         self.directUploader = directUploader
         self.publishedStore = publishedStore
         self.dateProvider = dateProvider
+        self.analytics = analytics
         self.onPublishedToday = onPublishedToday
     }
 
@@ -109,6 +112,10 @@ final class SketchFlowViewModel {
 
     func confirmTimerSelection(prompt: DailyPromptModel) {
         guard let selectedTimerOption else { return }
+        analytics?.track(
+            .timerOptionSelected,
+            properties: ["timer_mode": selectedTimerOption.mode]
+        )
         showsTimerSelection = false
         Task {
             await beginSession(
@@ -225,6 +232,7 @@ final class SketchFlowViewModel {
             sessionViewModel?.stopTicking()
             sessionViewModel = nil
             presentReview(for: draft, imageData: data)
+            analytics?.track(.photoCapturedOrSelected)
             refreshRecoveryState()
             refreshDraftState()
         } catch {
@@ -373,6 +381,7 @@ final class SketchFlowViewModel {
                 return self.auth.requireCompleteProfileForPublishing()
             },
             dateProvider: dateProvider,
+            analytics: analytics,
             onFinished: { [weak self] outcome in
                 self?.handleReviewOutcome(outcome)
             },
@@ -443,6 +452,7 @@ final class SketchFlowViewModel {
         )
         sessionViewModel = model
         showsActiveSession = true
+        analytics?.track(.sketchSessionStarted, properties: ["timer_mode": option.mode])
         model.startTicking()
 
         guard !isGuest, let token = auth.accessToken else { return }
@@ -492,6 +502,7 @@ final class SketchFlowViewModel {
             sessionService: sessionService,
             activeSessionStore: activeSessionStore,
             dateProvider: dateProvider,
+            analytics: analytics,
             onEnded: { [weak self] in
                 self?.handleSessionEnded()
             },

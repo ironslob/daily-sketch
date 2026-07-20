@@ -23,6 +23,9 @@ struct HomeView: View {
                     feedFetcher: dependencies.promptRepository,
                     socialService: dependencies.socialRepository,
                     publishedStore: dependencies.publishedSubmissionStore,
+                    homeCacheStore: dependencies.homeCacheStore,
+                    networkMonitor: dependencies.networkMonitor,
+                    analytics: dependencies.analytics,
                     sketchFlow: dependencies.makeSketchFlowViewModel(),
                     isAuthenticated: { dependencies.auth.isAuthenticated },
                     accessTokenProvider: { dependencies.auth.accessToken }
@@ -30,6 +33,9 @@ struct HomeView: View {
                 viewModel = model
                 await model.load()
             }
+        }
+        .onChange(of: dependencies.networkMonitor.isOnline) { _, _ in
+            viewModel?.syncOfflineState()
         }
     }
 
@@ -44,6 +50,30 @@ struct HomeView: View {
                 Text("Use all three words as inspiration for today’s sketch.")
                     .font(AppTypography.bodyLarge)
                     .foregroundStyle(AppColors.textSecondary)
+
+                if let offlineMessage = model.offlineIndicatorMessage {
+                    HStack(spacing: AppSpacing.sm) {
+                        Image(systemName: "wifi.slash")
+                            .foregroundStyle(AppColors.textSecondary)
+                            .accessibilityHidden(true)
+                        Text(offlineMessage)
+                            .font(AppTypography.caption)
+                            .foregroundStyle(AppColors.textSecondary)
+                    }
+                    .accessibilityElement(children: .combine)
+                    .accessibilityLabel(offlineMessage)
+                }
+
+                if model.isRefreshingPrompt {
+                    HStack(spacing: AppSpacing.sm) {
+                        ProgressView()
+                            .controlSize(.small)
+                        Text("Refreshing prompt…")
+                            .font(AppTypography.caption)
+                            .foregroundStyle(AppColors.textTertiary)
+                    }
+                    .accessibilityLabel("Refreshing today’s prompt")
+                }
 
                 if model.sketchFlow.showsRecoveryBanner {
                     recoveryBanner(model)

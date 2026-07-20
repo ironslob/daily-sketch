@@ -2,7 +2,7 @@
 
 Native iOS creative journal with a FastAPI backend. Every user receives the same three-word Daily Prompt; guests can sketch before authenticating.
 
-This repository is a monorepo. Phase 11 delivers reporting, blocking, operator moderation, and account deletion on top of Phase 10’s public profiles.
+This repository is a monorepo. Phase 12 delivers local reminders, recovery hardening, accessibility polish, privacy-conscious analytics, and offline-aware Home behaviour on top of Phase 11’s safety features.
 
 ## Prerequisites
 
@@ -48,6 +48,15 @@ make ios-build
 | `backend/` | FastAPI application, Alembic migrations, tests |
 | `ios/` | SwiftUI app (`DailySketch`) |
 | `spec/` | Product, design, architecture, implementation, infrastructure |
+
+## Phase 12 — Notifications, Recovery, Accessibility, and Polish
+
+- **Local daily reminders:** `Core/Notifications/` schedules iOS local notifications from saved preferences (`notifications_enabled`, `notification_time_local`, timezone). Permission is requested when enabling reminders in Settings or Profile Completion; denied permission exposes an Open Settings shortcut. Tapping a reminder opens Home.
+- **Recovery hardening:** Pending upload/submission resume (reuse completed `uploadId` when safe), signed-upload expiry retry, auth-expiry during publish routes back to the auth checkpoint, and offline-aware Home with disk-cached prompt/feed snapshots.
+- **Accessibility and polish:** Timer `accessibilityValue`, Reduce Motion for skeleton shimmer, appearance preference wired to app `preferredColorScheme`, offline indicator, and Settings reminder time picker aligned with Stitch.
+- **Product analytics:** Scrubbed local funnel events via `AnalyticsClient` (OSLog + in-memory buffer for tests). No third-party sink or sensitive payloads.
+- **Tests:** Reminder schedule/reschedule, notification navigation, offline cache, auth expiry during upload, upload resume, analytics scrubbing, VoiceOver/large-type UI smoke tests.
+- **Out of Phase 12:** APNs push, Activity inbox UI, analytics warehouse, Phase 13 release hardening.
 
 ## Phase 11 — Safety, Blocking, Reporting, and Account Deletion
 

@@ -1,6 +1,7 @@
 import Foundation
 import Observation
 
+@MainActor
 @Observable
 final class AppDependencies {
     let environment: AppEnvironment
@@ -24,6 +25,12 @@ final class AppDependencies {
     let draftImageStore: any DraftImageStoring
     let publishedSubmissionStore: any PublishedSubmissionStoring
     let cameraAuthorizer: any CameraAuthorizing
+    let reminderScheduler: any ReminderScheduling
+    let reminderNotificationDelegate: ReminderNotificationDelegate
+    let networkMonitor: NetworkPathMonitorService
+    let homeCacheStore: any HomeCacheStoring
+    let appearanceStore: AppearanceStore
+    let analytics: any AnalyticsTracking
 
     init(
         environment: AppEnvironment,
@@ -46,7 +53,13 @@ final class AppDependencies {
         draftStore: any DraftStoring,
         draftImageStore: any DraftImageStoring,
         publishedSubmissionStore: any PublishedSubmissionStoring,
-        cameraAuthorizer: any CameraAuthorizing
+        cameraAuthorizer: any CameraAuthorizing,
+        reminderScheduler: any ReminderScheduling = SystemReminderScheduler(),
+        reminderNotificationDelegate: ReminderNotificationDelegate? = nil,
+        networkMonitor: NetworkPathMonitorService? = nil,
+        homeCacheStore: any HomeCacheStoring = HomeCacheStore(),
+        appearanceStore: AppearanceStore = AppearanceStore(),
+        analytics: any AnalyticsTracking = AnalyticsClient.shared
     ) {
         self.environment = environment
         self.navigation = navigation
@@ -69,6 +82,29 @@ final class AppDependencies {
         self.draftImageStore = draftImageStore
         self.publishedSubmissionStore = publishedSubmissionStore
         self.cameraAuthorizer = cameraAuthorizer
+        self.reminderScheduler = reminderScheduler
+        self.reminderNotificationDelegate = reminderNotificationDelegate ?? ReminderNotificationDelegate(navigation: navigation)
+        self.networkMonitor = networkMonitor ?? NetworkPathMonitorService()
+        self.homeCacheStore = homeCacheStore
+        self.appearanceStore = appearanceStore
+        self.analytics = analytics
+        self.reminderNotificationDelegate.configure(with: navigation)
+    }
+
+    var reminderSync: ReminderPreferenceSync {
+        ReminderPreferenceSync(scheduler: reminderScheduler)
+    }
+
+    @MainActor
+    func hydrateUserPreferences() async {
+        guard let token = auth.accessToken else { return }
+        do {
+            let prefs = try await preferencesService.getPreferences(accessToken: token)
+            appearanceStore.update(from: prefs)
+            await reminderSync.sync(preferences: prefs)
+        } catch {
+            // Keep last-known appearance and reminder schedule on refresh failure.
+        }
     }
 
     @MainActor
@@ -86,6 +122,7 @@ final class AppDependencies {
             submissionService: submissionRepository,
             directUploader: directUploader,
             publishedStore: publishedSubmissionStore,
+            analytics: analytics,
             onPublishedToday: onPublishedToday
         )
     }
@@ -93,6 +130,7 @@ final class AppDependencies {
     @MainActor
     static var live: AppDependencies {
         let environment = AppEnvironment.current
+        let navigation = AppNavigationStore()
         let repository = MeRepository(baseURL: environment.apiBaseURL)
         let profileRepository = ProfileRepository(baseURL: environment.apiBaseURL)
         let promptRepository = PromptRepository(baseURL: environment.apiBaseURL)
@@ -118,6 +156,7 @@ final class AppDependencies {
             )
             return AppDependencies(
                 environment: environment,
+                navigation: navigation,
                 auth: auth,
                 descopeAuthService: nil,
                 preferencesService: repository,
@@ -147,6 +186,7 @@ final class AppDependencies {
         )
         return AppDependencies(
             environment: environment,
+            navigation: navigation,
             auth: auth,
             descopeAuthService: descope,
             preferencesService: repository,

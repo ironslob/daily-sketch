@@ -46,4 +46,23 @@ final class DailySketchUITests: XCTestCase {
             XCTAssertTrue(app.buttons["Create Free Account"].waitForExistence(timeout: 5))
         }
     }
+
+    func testVoiceOverSmokeLabelsOnHome() throws {
+        let app = XCUIApplication()
+        app.launch()
+
+        XCTAssertTrue(app.staticTexts["Today’s Inspiration"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["Start Sketch"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.tabBars.buttons["Home"].exists)
+        XCTAssertTrue(app.tabBars.buttons["Profile"].exists)
+    }
+
+    func testLargeDynamicTypeHomeStillShowsPrimaryActions() throws {
+        let app = XCUIApplication()
+        app.launchArguments += ["-UIPreferredContentSizeCategoryName", "UIAccessibilityExtraExtraExtraLarge"]
+        app.launch()
+
+        XCTAssertTrue(app.staticTexts["Today’s Inspiration"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["Start Sketch"].waitForExistence(timeout: 5))
+    }
 }

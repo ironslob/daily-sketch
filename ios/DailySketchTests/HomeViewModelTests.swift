@@ -62,6 +62,9 @@ final class HomeViewModelTests: XCTestCase {
             feedFetcher: fetcher,
             socialService: socialService,
             publishedStore: publishedStore,
+            homeCacheStore: InMemoryHomeCacheStore(),
+            networkMonitor: FixedNetworkMonitor(isOnline: true),
+            analytics: InMemoryAnalyticsClient(),
             sketchFlow: makeSketchFlow(),
             isAuthenticated: isAuthenticated,
             accessTokenProvider: accessTokenProvider

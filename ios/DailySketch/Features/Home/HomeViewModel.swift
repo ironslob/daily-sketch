@@ -27,6 +27,8 @@ final class HomeViewModel {
     private(set) var todaysPublished: [PublishedLocalSubmission] = []
     private(set) var likeErrorMessage: String?
     private(set) var pendingLikeSubmissionId: UUID?
+    private(set) var isOffline = false
+    private(set) var isRefreshingPrompt = false
     var showsAuthSheet = false
     var authSheetMode: AuthenticationView.Mode = .signUp
 
@@ -34,6 +36,9 @@ final class HomeViewModel {
     private let feedFetcher: any FeedFetching
     private let socialService: any SocialServing
     private let publishedStore: any PublishedSubmissionStoring
+    private let homeCacheStore: any HomeCacheStoring
+    private let networkMonitor: any NetworkMonitoring
+    private let analytics: any AnalyticsTracking
     private let isAuthenticated: () -> Bool
     private let accessTokenProvider: () -> String?
     let sketchFlow: SketchFlowViewModel
@@ -45,6 +50,9 @@ final class HomeViewModel {
         feedFetcher: any FeedFetching,
         socialService: any SocialServing,
         publishedStore: any PublishedSubmissionStoring,
+        homeCacheStore: any HomeCacheStoring,
+        networkMonitor: any NetworkMonitoring,
+        analytics: any AnalyticsTracking,
         sketchFlow: SketchFlowViewModel,
         isAuthenticated: @escaping () -> Bool = { false },
         accessTokenProvider: @escaping () -> String? = { nil }
@@ -53,16 +61,17 @@ final class HomeViewModel {
         self.feedFetcher = feedFetcher
         self.socialService = socialService
         self.publishedStore = publishedStore
+        self.homeCacheStore = homeCacheStore
+        self.networkMonitor = networkMonitor
+        self.analytics = analytics
         self.sketchFlow = sketchFlow
         self.isAuthenticated = isAuthenticated
         self.accessTokenProvider = accessTokenProvider
+        restoreCachedHomeSnapshot()
     }
 
     var canStartSketch: Bool {
-        if case .loaded = promptState {
-            return true
-        }
-        return false
+        loadedPrompt != nil
     }
 
     var hasSketchedToday: Bool {
@@ -93,18 +102,29 @@ final class HomeViewModel {
     }
 
     var canLoadMoreFeed: Bool {
-        nextFeedCursor != nil && !isLoadingMoreFeed
+        nextFeedCursor != nil && !isLoadingMoreFeed && networkMonitor.isOnline
+    }
+
+    var offlineIndicatorMessage: String? {
+        guard isOffline else { return nil }
+        if loadedPrompt != nil {
+            return "You’re offline. Showing cached inspiration."
+        }
+        return "You’re offline. Some actions need a connection."
     }
 
     func load() async {
+        syncOfflineState()
         sketchFlow.prepareOnAppear()
         refreshPublishedToday()
         async let promptLoad: Void = loadPrompt()
         async let feedLoad: Void = loadFeed(reset: true)
         _ = await (promptLoad, feedLoad)
+        analytics.track(.feedViewed)
     }
 
     func refresh() async {
+        syncOfflineState()
         refreshPublishedToday()
         async let promptLoad: Void = loadPrompt()
         async let feedLoad: Void = loadFeed(reset: true)
@@ -153,6 +173,10 @@ final class HomeViewModel {
 
     func toggleLike(itemId: UUID) async {
         guard let index = feedItems.firstIndex(where: { $0.id == itemId }) else { return }
+        guard networkMonitor.isOnline else {
+            likeErrorMessage = "Reconnect to update Likes."
+            return
+        }
         guard isAuthenticated(), let token = accessTokenProvider() else {
             pendingLikeSubmissionId = itemId
             authSheetMode = .signUp
@@ -177,11 +201,13 @@ final class HomeViewModel {
                     accessToken: token,
                     submissionId: itemId
                 )
+                analytics.track(.likeAdded, properties: ["submission_id": itemId.uuidString])
             } else {
                 result = try await socialService.unlikeSubmission(
                     accessToken: token,
                     submissionId: itemId
                 )
+                analytics.track(.likeRemoved, properties: ["submission_id": itemId.uuidString])
             }
             if let refreshedIndex = feedItems.firstIndex(where: { $0.id == itemId }) {
                 feedItems[refreshedIndex] = feedItems[refreshedIndex].withLikeState(
@@ -212,25 +238,69 @@ final class HomeViewModel {
 
     func startSketch() {
         guard let prompt = loadedPrompt else { return }
+        analytics.track(.startSketchTapped, properties: ["prompt_id": prompt.id.uuidString])
         sketchFlow.startSketch(prompt: prompt)
     }
 
+    func syncOfflineState() {
+        isOffline = !networkMonitor.isOnline
+    }
+
+    private func restoreCachedHomeSnapshot() {
+        guard let snapshot = try? homeCacheStore.load() else { return }
+        cachedPrompt = snapshot.prompt
+        if let prompt = snapshot.prompt {
+            promptState = .loaded(prompt)
+        }
+        if !snapshot.feedItems.isEmpty {
+            feedItems = snapshot.feedItems
+            nextFeedCursor = snapshot.nextFeedCursor
+            feedState = .loaded(feedItems)
+        }
+    }
+
+    private func persistHomeCache() {
+        let snapshot = CachedHomeSnapshot(
+            prompt: cachedPrompt,
+            feedItems: feedItems,
+            nextFeedCursor: nextFeedCursor,
+            cachedAt: Date()
+        )
+        try? homeCacheStore.save(snapshot)
+    }
+
     private func loadPrompt() async {
+        syncOfflineState()
         if let cachedPrompt {
             promptState = .loaded(cachedPrompt)
         } else {
             promptState = .loading
         }
 
+        guard networkMonitor.isOnline else {
+            if cachedPrompt != nil {
+                isRefreshingPrompt = false
+            } else {
+                promptState = .failed("Couldn’t load today’s prompt while offline.")
+            }
+            return
+        }
+
+        isRefreshingPrompt = cachedPrompt != nil
+        defer { isRefreshingPrompt = false }
+
         do {
             let prompt = try await promptFetcher.fetchTodaysPrompt()
             cachedPrompt = prompt
             promptState = .loaded(prompt)
             refreshPublishedToday()
+            analytics.track(.promptViewed, properties: ["prompt_id": prompt.id.uuidString])
+            persistHomeCache()
         } catch let error as PromptAPIError where error == .promptNotFound {
             cachedPrompt = nil
             promptState = .missing
             todaysPublished = []
+            persistHomeCache()
         } catch {
             if cachedPrompt == nil {
                 promptState = .failed(error.localizedDescription)
@@ -239,6 +309,7 @@ final class HomeViewModel {
     }
 
     private func loadFeed(reset: Bool) async {
+        syncOfflineState()
         if reset {
             feedState = feedItems.isEmpty ? .loading : feedState
             isLoadingMoreFeed = false
@@ -246,6 +317,14 @@ final class HomeViewModel {
             guard let nextFeedCursor, !isLoadingMoreFeed else { return }
             isLoadingMoreFeed = true
             _ = nextFeedCursor
+        }
+
+        guard networkMonitor.isOnline else {
+            if feedItems.isEmpty {
+                feedState = .failed("Couldn’t load community sketches while offline.")
+            }
+            isLoadingMoreFeed = false
+            return
         }
 
         let cursor = reset ? nil : nextFeedCursor
@@ -264,13 +343,13 @@ final class HomeViewModel {
             }
             nextFeedCursor = page.nextCursor
             feedState = feedItems.isEmpty ? .empty : .loaded(feedItems)
+            persistHomeCache()
         } catch {
             if reset && feedItems.isEmpty {
                 feedState = .failed(
                     "Couldn’t load community sketches. Check your connection and try again."
                 )
             }
-            // Keep previously loaded feed visible on pagination failure.
         }
         isLoadingMoreFeed = false
     }

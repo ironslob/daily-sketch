@@ -9,6 +9,12 @@ struct UploadSlotModel: Equatable, Sendable, Identifiable {
     let signedUploadMethod: String?
     let signedUploadHeaders: [String: String]
     let maxBytes: Int?
+    let expiresAt: Date?
+
+    func isSignedUploadExpired(now: Date = Date()) -> Bool {
+        guard let expiresAt else { return false }
+        return now >= expiresAt
+    }
 }
 
 struct SubmissionModel: Equatable, Sendable, Identifiable {
@@ -92,6 +98,7 @@ enum PublicationAPIError: LocalizedError, Equatable {
     case invalidImage
     case idempotencyKeyConflict
     case sessionExpired
+    case signedUploadExpired
     case underlying(String)
 
     var errorDescription: String? {
@@ -122,6 +129,8 @@ enum PublicationAPIError: LocalizedError, Equatable {
             return "This idempotency key was already used with a different request."
         case .sessionExpired:
             return AuthServiceError.sessionExpired.localizedDescription
+        case .signedUploadExpired:
+            return "Your upload link expired. Retry to request a fresh upload."
         case .underlying(let message):
             return message
         }
@@ -193,7 +202,13 @@ struct URLSessionDirectUploader: DirectUploadTransporting {
         }
         progress?(0)
         let (_, response) = try await URLSession.shared.upload(for: request, from: data)
-        guard let http = response as? HTTPURLResponse, (200...299).contains(http.statusCode) else {
+        guard let http = response as? HTTPURLResponse else {
+            throw PublicationAPIError.underlying("Upload to storage failed.")
+        }
+        if http.statusCode == 403 {
+            throw PublicationAPIError.signedUploadExpired
+        }
+        guard (200...299).contains(http.statusCode) else {
             throw PublicationAPIError.underlying("Upload to storage failed.")
         }
         progress?(1)
@@ -259,7 +274,8 @@ struct UploadRepository: UploadServing {
             signedUploadURL: upload.signedUpload.flatMap { URL(string: $0.url) },
             signedUploadMethod: upload.signedUpload?.method.rawValue,
             signedUploadHeaders: upload.signedUpload?.headers ?? [:],
-            maxBytes: upload.signedUpload?.maxBytes
+            maxBytes: upload.signedUpload?.maxBytes,
+            expiresAt: upload.signedUpload?.expiresAt ?? upload.expiresAt
         )
     }
 }
@@ -436,7 +452,8 @@ final class RecordingUploadRepository: UploadServing, @unchecked Sendable {
             signedUploadURL: URL(string: "https://example.test/upload"),
             signedUploadMethod: "PUT",
             signedUploadHeaders: ["Content-Type": contentType],
-            maxBytes: max(byteSize, 1)
+            maxBytes: max(byteSize, 1),
+            expiresAt: Date().addingTimeInterval(3600)
         )
     }
 
@@ -451,7 +468,8 @@ final class RecordingUploadRepository: UploadServing, @unchecked Sendable {
             signedUploadURL: nil,
             signedUploadMethod: nil,
             signedUploadHeaders: [:],
-            maxBytes: nil
+            maxBytes: nil,
+            expiresAt: nil
         )
     }
 }

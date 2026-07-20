@@ -46,6 +46,7 @@ final class ReviewSubmissionViewModel {
     private let isAuthenticated: () -> Bool
     private let canPublish: () -> Bool
     private let dateProvider: any DateProviding
+    private let analytics: (any AnalyticsTracking)?
     private let onFinished: (ReviewSubmissionOutcome) -> Void
     private let onReplaceRequested: () -> Void
     private let onPublished: ((SubmissionModel) -> Void)?
@@ -64,6 +65,7 @@ final class ReviewSubmissionViewModel {
         isAuthenticated: @escaping () -> Bool,
         canPublish: @escaping () -> Bool = { true },
         dateProvider: any DateProviding = SystemDateProvider(),
+        analytics: (any AnalyticsTracking)? = nil,
         onFinished: @escaping (ReviewSubmissionOutcome) -> Void,
         onReplaceRequested: @escaping () -> Void,
         onPublished: ((SubmissionModel) -> Void)? = nil
@@ -83,9 +85,11 @@ final class ReviewSubmissionViewModel {
         self.isAuthenticated = isAuthenticated
         self.canPublish = canPublish
         self.dateProvider = dateProvider
+        self.analytics = analytics
         self.onFinished = onFinished
         self.onReplaceRequested = onReplaceRequested
         self.onPublished = onPublished
+        analytics?.track(.reviewSubmissionViewed)
     }
 
     var characterCountLabel: String? {
@@ -124,6 +128,7 @@ final class ReviewSubmissionViewModel {
         draft.caption = trimmed.isEmpty ? nil : trimmed
         draft.imageFileName = newFileName
         draft.uploadId = nil
+        draft.uploadCompleted = false
         draft.updatedAt = dateProvider.now()
         try draftStore.save(draft)
         try? imageStore.delete(fileName: previousFileName)
@@ -140,6 +145,7 @@ final class ReviewSubmissionViewModel {
             defer { isSaving = false }
             do {
                 try persistCaption(pendingAuthentication: draft.pendingAuthentication, pendingPublication: false)
+                analytics?.track(.draftSaved)
                 bannerMessage = "Saved to Drafts."
                 onFinished(.savedToDrafts)
             } catch {
@@ -185,6 +191,7 @@ final class ReviewSubmissionViewModel {
             )
 
             guard isAuthenticated() else {
+                analytics?.track(.authCheckpointShown)
                 onFinished(.needsAuthentication)
                 return
             }
@@ -194,79 +201,16 @@ final class ReviewSubmissionViewModel {
             }
             guard let token = accessTokenProvider(),
                   let uploadService,
-                  let submissionService,
-                  let directUploader else {
+                  let submissionService else {
                 throw PublicationAPIError.underlying("Publishing is not configured.")
             }
 
-            var serverSessionId = draft.serverSessionId
-            if serverSessionId == nil, let sessionService {
-                let created = try await sessionService.createSession(
-                    accessToken: token,
-                    promptId: draft.promptId,
-                    timerMode: draft.timerMode,
-                    selectedTimerSeconds: draft.selectedTimerSeconds,
-                    clientTimezone: TimeZone.current.identifier,
-                    clientSessionId: draft.localSessionId.uuidString,
-                    idempotencyKey: "draft-session-\(draft.id.uuidString)"
-                )
-                serverSessionId = created.id
-                draft.serverSessionId = created.id
-                try draftStore.save(draft)
-                _ = try? await sessionService.postEvent(
-                    accessToken: token,
-                    sessionId: created.id,
-                    eventType: "photo_step_reached",
-                    clientOccurredAt: dateProvider.now()
-                )
-            }
-            guard let sessionId = serverSessionId else {
-                throw PublicationAPIError.sessionNotFound
-            }
+            let sessionId = try await ensureServerSession(accessToken: token)
 
-            if let sessionService {
-                _ = try? await sessionService.postEvent(
-                    accessToken: token,
-                    sessionId: sessionId,
-                    eventType: "upload_started",
-                    clientOccurredAt: dateProvider.now()
-                )
-            }
-
-            let slot = try await uploadService.createUpload(
+            let uploadId = try await ensureUploaded(
                 accessToken: token,
-                contentType: "image/jpeg",
-                byteSize: imageData.count,
-                purpose: .submission,
-                idempotencyKey: "upload-\(draft.id.uuidString)"
+                uploadService: uploadService
             )
-            draft.uploadId = slot.id
-            try draftStore.save(draft)
-
-            guard let signedURL = slot.signedUploadURL,
-                  let method = slot.signedUploadMethod else {
-                throw PublicationAPIError.uploadNotReady
-            }
-            try await directUploader.upload(
-                data: imageData,
-                to: signedURL,
-                method: method,
-                headers: slot.signedUploadHeaders
-            ) { [weak self] value in
-                Task { @MainActor in
-                    self?.uploadProgress = value
-                }
-            }
-
-            _ = try await uploadService.completeUpload(accessToken: token, uploadId: slot.id)
-            if let sessionService {
-                _ = try? await sessionService.postEvent(
-                    accessToken: token,
-                    sessionId: sessionId,
-                    eventType: "upload_completed",
-                    clientOccurredAt: dateProvider.now()
-                )
-            }
 
             let idempotencyKey = draft.publicationIdempotencyKey ?? UUID().uuidString
             draft.publicationIdempotencyKey = idempotencyKey
@@ -276,7 +220,7 @@ final class ReviewSubmissionViewModel {
             let submission = try await submissionService.createSubmission(
                 accessToken: token,
                 sketchSessionId: sessionId,
-                uploadId: slot.id,
+                uploadId: uploadId,
                 caption: trimmed.isEmpty ? nil : trimmed,
                 idempotencyKey: idempotencyKey
             )
@@ -291,12 +235,142 @@ final class ReviewSubmissionViewModel {
                 publishedAt: submission.publishedAt
             )
             try? publishedStore?.save(published)
+            analytics?.track(.submissionPublished, properties: ["submission_id": submission.id.uuidString])
             onPublished?(submission)
             onFinished(.published(submission))
+        } catch PublicationAPIError.sessionExpired {
+            publishErrorMessage = PublicationAPIError.sessionExpired.localizedDescription
+            try? persistCaption(pendingAuthentication: true, pendingPublication: true)
+            analytics?.track(.authCheckpointShown)
+            onFinished(.needsAuthentication)
+        } catch PublicationAPIError.signedUploadExpired {
+            draft.uploadId = nil
+            draft.uploadCompleted = false
+            try? draftStore.save(draft)
+            publishErrorMessage = PublicationAPIError.signedUploadExpired.localizedDescription
+            try? persistCaption(pendingAuthentication: false, pendingPublication: true)
         } catch {
+            if let apiError = error as? PublicationAPIError, apiError == .sessionExpired {
+                publishErrorMessage = apiError.localizedDescription
+                try? persistCaption(pendingAuthentication: true, pendingPublication: true)
+                analytics?.track(.authCheckpointShown)
+                onFinished(.needsAuthentication)
+                return
+            }
             publishErrorMessage = error.localizedDescription
+            analytics?.track(.uploadFailed, properties: ["reason": "publish_error"])
             try? persistCaption(pendingAuthentication: false, pendingPublication: true)
         }
+    }
+
+    private func ensureServerSession(accessToken: String) async throws -> UUID {
+        if let serverSessionId = draft.serverSessionId {
+            return serverSessionId
+        }
+        guard let sessionService else {
+            throw PublicationAPIError.sessionNotFound
+        }
+        let created = try await sessionService.createSession(
+            accessToken: accessToken,
+            promptId: draft.promptId,
+            timerMode: draft.timerMode,
+            selectedTimerSeconds: draft.selectedTimerSeconds,
+            clientTimezone: TimeZone.current.identifier,
+            clientSessionId: draft.localSessionId.uuidString,
+            idempotencyKey: "draft-session-\(draft.id.uuidString)"
+        )
+        draft.serverSessionId = created.id
+        try draftStore.save(draft)
+        _ = try? await sessionService.postEvent(
+            accessToken: accessToken,
+            sessionId: created.id,
+            eventType: "photo_step_reached",
+            clientOccurredAt: dateProvider.now()
+        )
+        return created.id
+    }
+
+    private func ensureUploaded(
+        accessToken: String,
+        uploadService: any UploadServing
+    ) async throws -> UUID {
+        if let existingUploadId = draft.uploadId, draft.uploadCompleted {
+            return existingUploadId
+        }
+
+        guard let directUploader else {
+            throw PublicationAPIError.underlying("Publishing is not configured.")
+        }
+
+        if draft.uploadId != nil, !draft.uploadCompleted {
+            draft.uploadId = nil
+            try draftStore.save(draft)
+        }
+
+        if let sessionService, let sessionId = draft.serverSessionId {
+            _ = try? await sessionService.postEvent(
+                accessToken: accessToken,
+                sessionId: sessionId,
+                eventType: "upload_started",
+                clientOccurredAt: dateProvider.now()
+            )
+        }
+        analytics?.track(.uploadStarted)
+
+        let slot = try await uploadService.createUpload(
+            accessToken: accessToken,
+            contentType: "image/jpeg",
+            byteSize: imageData.count,
+            purpose: .submission,
+            idempotencyKey: "upload-\(draft.id.uuidString)"
+        )
+
+        if slot.isSignedUploadExpired() {
+            throw PublicationAPIError.signedUploadExpired
+        }
+
+        draft.uploadId = slot.id
+        draft.uploadCompleted = false
+        try draftStore.save(draft)
+
+        guard let signedURL = slot.signedUploadURL,
+              let method = slot.signedUploadMethod else {
+            throw PublicationAPIError.uploadNotReady
+        }
+
+        do {
+            try await directUploader.upload(
+                data: imageData,
+                to: signedURL,
+                method: method,
+                headers: slot.signedUploadHeaders
+            ) { [weak self] value in
+                Task { @MainActor in
+                    self?.uploadProgress = value
+                }
+            }
+        } catch PublicationAPIError.signedUploadExpired {
+            draft.uploadId = nil
+            draft.uploadCompleted = false
+            try draftStore.save(draft)
+            throw PublicationAPIError.signedUploadExpired
+        }
+
+        _ = try await uploadService.completeUpload(accessToken: accessToken, uploadId: slot.id)
+        draft.uploadCompleted = true
+        try draftStore.save(draft)
+        analytics?.track(.uploadCompleted)
+
+        if let sessionService, let sessionId = draft.serverSessionId {
+            _ = try? await sessionService.postEvent(
+                accessToken: accessToken,
+                sessionId: sessionId,
+                eventType: "upload_completed",
+                clientOccurredAt: dateProvider.now()
+            )
+        }
+
+        return slot.id
     }
 
     private func persistCaption(pendingAuthentication: Bool, pendingPublication: Bool) throws {

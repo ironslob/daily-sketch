@@ -1,4 +1,5 @@
 import SwiftUI
+import UserNotifications
 
 @main
 struct DailySketchApp: App {
@@ -18,9 +19,18 @@ struct DailySketchApp: App {
         WindowGroup {
             RootTabView()
                 .environment(dependencies)
-                .preferredColorScheme(nil)
+                .preferredColorScheme(dependencies.appearanceStore.colorScheme)
                 .task {
+                    UNUserNotificationCenter.current().delegate = dependencies.reminderNotificationDelegate
+                    dependencies.analytics.track(.appOpened)
                     await dependencies.auth.bootstrap()
+                    await dependencies.hydrateUserPreferences()
+                }
+                .onReceive(NotificationCenter.default.publisher(for: .NSSystemTimeZoneDidChange)) { _ in
+                    Task { await dependencies.hydrateUserPreferences() }
+                }
+                .onReceive(NotificationCenter.default.publisher(for: UIApplication.significantTimeChangeNotification)) { _ in
+                    Task { await dependencies.hydrateUserPreferences() }
                 }
         }
     }

@@ -121,7 +121,8 @@ struct ProfileView: View {
                 mode: mode,
                 profileFetcher: dependencies.profileRepository,
                 accessTokenProvider: { dependencies.auth.accessToken },
-                ownUsernameProvider: { dependencies.auth.currentUser?.username }
+                ownUsernameProvider: { dependencies.auth.currentUser?.username },
+                analytics: dependencies.analytics
             )
             model = next
             if shouldLoadProfile {

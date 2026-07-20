@@ -1,6 +1,6 @@
 import Foundation
 
-struct DailyPromptModel: Equatable, Sendable, Identifiable {
+struct DailyPromptModel: Codable, Equatable, Sendable, Identifiable {
     let id: UUID
     let promptDate: Date
     let word1: String
@@ -21,7 +21,7 @@ struct RecentFeedPage: Equatable, Sendable {
     let nextCursor: String?
 }
 
-struct FeedItemModel: Equatable, Sendable, Identifiable {
+struct FeedItemModel: Codable, Equatable, Sendable, Identifiable {
     let id: UUID
     let imageURL: URL
     let thumbnailURL: URL

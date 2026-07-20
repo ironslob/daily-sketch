@@ -49,6 +49,7 @@ final class SubmissionDetailViewModel {
     private let safetyService: any SafetyServing
     private let isAuthenticated: () -> Bool
     private let accessTokenProvider: () -> String?
+    private let analytics: (any AnalyticsTracking)?
     var onDeleted: (() -> Void)?
     var onLikeChanged: ((UUID, Bool, Int) -> Void)?
     var onBlockedUser: ((UUID) -> Void)?
@@ -62,6 +63,7 @@ final class SubmissionDetailViewModel {
         safetyService: any SafetyServing = RecordingSafetyRepository(),
         isAuthenticated: @escaping () -> Bool = { false },
         accessTokenProvider: @escaping () -> String?,
+        analytics: (any AnalyticsTracking)? = nil,
         onDeleted: (() -> Void)? = nil,
         onLikeChanged: ((UUID, Bool, Int) -> Void)? = nil,
         onBlockedUser: ((UUID) -> Void)? = nil
@@ -72,6 +74,7 @@ final class SubmissionDetailViewModel {
         self.safetyService = safetyService
         self.isAuthenticated = isAuthenticated
         self.accessTokenProvider = accessTokenProvider
+        self.analytics = analytics
         self.onDeleted = onDeleted
         self.onLikeChanged = onLikeChanged
         self.onBlockedUser = onBlockedUser
@@ -87,6 +90,10 @@ final class SubmissionDetailViewModel {
                 submissionId: submissionId
             )
             state = .loaded(submission)
+            analytics?.track(
+                .submissionDetailViewed,
+                properties: ["submission_id": submissionId.uuidString]
+            )
             await loadReflections(reset: true)
         } catch {
             state = .failed(error.localizedDescription)
@@ -193,11 +200,13 @@ final class SubmissionDetailViewModel {
                     accessToken: token,
                     submissionId: submissionId
                 )
+                analytics?.track(.likeAdded, properties: ["submission_id": submissionId.uuidString])
             } else {
                 result = try await socialService.unlikeSubmission(
                     accessToken: token,
                     submissionId: submissionId
                 )
+                analytics?.track(.likeRemoved, properties: ["submission_id": submissionId.uuidString])
             }
             if case .loaded(let current) = state {
                 let confirmed = current.withLikeState(liked: result.liked, likeCount: result.likeCount)
@@ -281,6 +290,7 @@ final class SubmissionDetailViewModel {
             reflections.append(created)
             reflectionsState = .loaded
             composerText = ""
+            analytics?.track(.reflectionPosted, properties: ["submission_id": submissionId.uuidString])
             if case .loaded(let submission) = state {
                 state = .loaded(submission.withReflectionCount(submission.reflectionCount + 1))
             }
@@ -301,6 +311,7 @@ final class SubmissionDetailViewModel {
                 reflectionId: reflection.id
             )
             reflections.removeAll { $0.id == reflection.id }
+            analytics?.track(.reflectionDeleted, properties: ["submission_id": submissionId.uuidString])
             if case .loaded(let submission) = state {
                 state = .loaded(
                     submission.withReflectionCount(max(0, submission.reflectionCount - 1))

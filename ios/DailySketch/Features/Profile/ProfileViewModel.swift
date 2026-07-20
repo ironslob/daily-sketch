@@ -27,18 +27,21 @@ final class ProfileViewModel {
     private let profileFetcher: any ProfileFetching
     private let accessTokenProvider: () -> String?
     private let ownUsernameProvider: () -> String?
+    private let analytics: (any AnalyticsTracking)?
     private let pageSize = 20
 
     init(
         mode: Mode,
         profileFetcher: any ProfileFetching,
         accessTokenProvider: @escaping () -> String? = { nil },
-        ownUsernameProvider: @escaping () -> String? = { nil }
+        ownUsernameProvider: @escaping () -> String? = { nil },
+        analytics: (any AnalyticsTracking)? = nil
     ) {
         self.mode = mode
         self.profileFetcher = profileFetcher
         self.accessTokenProvider = accessTokenProvider
         self.ownUsernameProvider = ownUsernameProvider
+        self.analytics = analytics
     }
 
     var username: String? {
@@ -94,6 +97,7 @@ final class ProfileViewModel {
             galleryItems = page.items
             nextCursor = page.nextCursor
             contentState = page.items.isEmpty ? .empty : .loaded
+            analytics?.track(.profileViewed, properties: ["username": username])
         } catch {
             contentState = .failed(error.localizedDescription)
         }

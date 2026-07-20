@@ -19,7 +19,9 @@ struct ProfileCompletionView: View {
             if viewModel == nil {
                 viewModel = ProfileCompletionViewModel(
                     auth: dependencies.auth,
-                    preferencesService: dependencies.preferencesService
+                    preferencesService: dependencies.preferencesService,
+                    reminderSync: dependencies.reminderSync,
+                    analytics: dependencies.analytics
                 )
             }
         }

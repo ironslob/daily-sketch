@@ -38,6 +38,7 @@ final class SketchSessionViewModel {
     private let sessionService: any SketchSessionServing
     private let activeSessionStore: any ActiveSessionStoring
     private let dateProvider: any DateProviding
+    private let analytics: (any AnalyticsTracking)?
     private let onEnded: () -> Void
     private let onReadyForPhoto: () -> Void
 
@@ -58,6 +59,7 @@ final class SketchSessionViewModel {
         sessionService: any SketchSessionServing,
         activeSessionStore: any ActiveSessionStoring,
         dateProvider: any DateProviding = SystemDateProvider(),
+        analytics: (any AnalyticsTracking)? = nil,
         onEnded: @escaping () -> Void,
         onReadyForPhoto: @escaping () -> Void = {}
     ) {
@@ -78,6 +80,7 @@ final class SketchSessionViewModel {
         self.sessionService = sessionService
         self.activeSessionStore = activeSessionStore
         self.dateProvider = dateProvider
+        self.analytics = analytics
         self.onEnded = onEnded
         self.onReadyForPhoto = onReadyForPhoto
 
@@ -144,6 +147,7 @@ final class SketchSessionViewModel {
         pausedAt = dateProvider.now()
         refreshDisplayedTime()
         persistSnapshot()
+        analytics?.track(.sketchSessionPaused)
         Task { await postEvent("paused") }
     }
 
@@ -155,6 +159,7 @@ final class SketchSessionViewModel {
         phase = .running
         refreshDisplayedTime()
         persistSnapshot()
+        analytics?.track(.sketchSessionResumed)
         Task { await postEvent("resumed") }
     }
 
@@ -180,6 +185,7 @@ final class SketchSessionViewModel {
         showsCancelConfirmation = false
         phase = .abandoned
         stopTicking()
+        analytics?.track(.sessionAbandoned)
         Task {
             await abandonRemote()
             try? activeSessionStore.clear()
@@ -206,6 +212,7 @@ final class SketchSessionViewModel {
         persistSnapshot()
         Task {
             if emitFinishedEarly {
+                analytics?.track(.sessionFinishedEarly)
                 await postEvent("finished_early")
             }
             await postEvent("photo_step_reached")
@@ -248,6 +255,7 @@ final class SketchSessionViewModel {
             didEmitTimerCompleted = true
             phase = .timerCompleted
             persistSnapshot()
+            analytics?.track(.timerCompleted)
             Task { await postEvent("timer_completed") }
         }
     }

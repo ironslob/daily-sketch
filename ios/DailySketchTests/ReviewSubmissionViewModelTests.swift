@@ -249,6 +249,108 @@ final class ReviewSubmissionViewModelTests: XCTestCase {
         XCTAssertEqual(model.caption, "reopened")
     }
 
+    func testAuthExpiryDuringPublishRoutesToAuthentication() async throws {
+        let draftStore = InMemoryDraftStore()
+        let imageStore = InMemoryDraftImageStore()
+        let uploads = RecordingUploadRepository()
+        uploads.createError = PublicationAPIError.sessionExpired
+        let (draft, data) = try makeDraft(imageStore: imageStore)
+        try draftStore.save(draft)
+
+        var outcome: ReviewSubmissionOutcome?
+        let model = ReviewSubmissionViewModel(
+            draft: draft,
+            imageData: data,
+            draftStore: draftStore,
+            imageStore: imageStore,
+            uploadService: uploads,
+            submissionService: RecordingSubmissionRepository(),
+            sessionService: RecordingSketchSessionRepository(),
+            directUploader: RecordingDirectUploader(),
+            accessTokenProvider: { "token" },
+            isAuthenticated: { true },
+            canPublish: { true },
+            onFinished: { outcome = $0 },
+            onReplaceRequested: {}
+        )
+        model.submitToCommunity()
+        await waitUntil(outcome != nil)
+
+        XCTAssertEqual(outcome, .needsAuthentication)
+        XCTAssertEqual(try draftStore.list().first?.pendingPublication, true)
+    }
+
+    func testCompletedUploadSkipsReuploadOnRetry() async throws {
+        let draftStore = InMemoryDraftStore()
+        let imageStore = InMemoryDraftImageStore()
+        let uploads = RecordingUploadRepository()
+        let submissions = RecordingSubmissionRepository()
+        submissions.createError = PublicationAPIError.underlying("temporary")
+        let uploadId = UUID()
+        var (draft, data) = try makeDraft(imageStore: imageStore)
+        draft.uploadId = uploadId
+        draft.uploadCompleted = true
+        try draftStore.save(draft)
+
+        let model = ReviewSubmissionViewModel(
+            draft: draft,
+            imageData: data,
+            draftStore: draftStore,
+            imageStore: imageStore,
+            uploadService: uploads,
+            submissionService: submissions,
+            directUploader: RecordingDirectUploader(),
+            accessTokenProvider: { "token" },
+            isAuthenticated: { true },
+            canPublish: { true },
+            onFinished: { _ in },
+            onReplaceRequested: {}
+        )
+        model.submitToCommunity()
+        await waitUntil(model.publishErrorMessage != nil)
+
+        submissions.createError = nil
+        model.retryPublish()
+        await waitUntil(submissions.createCallCount >= 2)
+
+        XCTAssertEqual(uploads.createCallCount, 0)
+        XCTAssertEqual(submissions.createCallCount, 2)
+    }
+
+    func testSignedUploadExpiryRequestsFreshSlotOnRetry() async throws {
+        let draftStore = InMemoryDraftStore()
+        let imageStore = InMemoryDraftImageStore()
+        let uploads = RecordingUploadRepository()
+        let uploader = RecordingDirectUploader()
+        uploader.uploadError = PublicationAPIError.signedUploadExpired
+        let (draft, data) = try makeDraft(imageStore: imageStore)
+        try draftStore.save(draft)
+
+        let model = ReviewSubmissionViewModel(
+            draft: draft,
+            imageData: data,
+            draftStore: draftStore,
+            imageStore: imageStore,
+            uploadService: uploads,
+            submissionService: RecordingSubmissionRepository(),
+            directUploader: uploader,
+            accessTokenProvider: { "token" },
+            isAuthenticated: { true },
+            canPublish: { true },
+            onFinished: { _ in },
+            onReplaceRequested: {}
+        )
+        model.submitToCommunity()
+        await waitUntil(model.publishErrorMessage != nil)
+
+        XCTAssertEqual(model.publishErrorMessage, PublicationAPIError.signedUploadExpired.localizedDescription)
+        uploader.uploadError = nil
+        model.retryPublish()
+        await waitUntil(uploads.createCallCount >= 2)
+
+        XCTAssertGreaterThanOrEqual(uploads.createCallCount, 2)
+    }
+
     private func makeJPEG(color: UIColor = .red) -> Data {
         let renderer = UIGraphicsImageRenderer(size: CGSize(width: 6, height: 6))
         let image = renderer.image { context in

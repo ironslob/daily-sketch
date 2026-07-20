@@ -19,11 +19,17 @@ struct SettingsView: View {
             if viewModel == nil {
                 let model = SettingsViewModel(
                     auth: dependencies.auth,
-                    preferencesService: dependencies.preferencesService
+                    preferencesService: dependencies.preferencesService,
+                    reminderSync: dependencies.reminderSync,
+                    appearanceStore: dependencies.appearanceStore,
+                    analytics: dependencies.analytics
                 )
                 viewModel = model
                 await model.load()
             }
+        }
+        .onAppear {
+            Task { await viewModel?.refreshReminderPermissionStatus() }
         }
     }
 
@@ -98,11 +104,35 @@ struct SettingsView: View {
             .accessibilityLabel("Daily Reminder")
 
             if model.preferences.notificationsEnabled {
-                LabeledContent(
+                DatePicker(
                     "Reminder Time",
-                    value: model.preferences.notificationTimeLocal ?? "09:00:00"
+                    selection: Binding(
+                        get: { model.reminderTimeDate },
+                        set: { date in
+                            Task { await model.setReminderTime(date) }
+                        }
+                    ),
+                    displayedComponents: .hourAndMinute
                 )
-                Text("Local notification scheduling arrives in a later phase.")
+                .accessibilityLabel("Reminder Time")
+
+                Text("The reminder announces when today’s daily prompt is ready.")
+                    .font(AppTypography.caption)
+                    .foregroundStyle(AppColors.textSecondary)
+            }
+
+            if model.showsOpenSettingsForNotifications {
+                Button("Open Settings") {
+                    if let url = URL(string: UIApplication.openSettingsURLString) {
+                        UIApplication.shared.open(url)
+                    }
+                }
+                .accessibilityLabel("Open Settings to allow notifications")
+                Text("Notifications are disabled in iOS Settings.")
+                    .font(AppTypography.caption)
+                    .foregroundStyle(AppColors.danger)
+            } else if model.reminderPermissionStatus == .denied {
+                Text("Notifications are disabled in iOS Settings.")
                     .font(AppTypography.caption)
                     .foregroundStyle(AppColors.textSecondary)
             }

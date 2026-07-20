@@ -12,10 +12,21 @@ enum AppRoute: Hashable {
     case deleteAccount
 }
 
+enum AppTab: Hashable {
+    case home
+    case profile
+}
+
 @Observable
 final class AppNavigationStore {
+    var selectedTab: AppTab = .home
     var homePath: [AppRoute] = []
     var profilePath: [AppRoute] = []
     /// Set when a Submission is deleted so Home can refresh the community feed.
     var feedNeedsRefresh = false
+
+    func openHomeFromReminder() {
+        selectedTab = .home
+        homePath.removeAll()
+    }
 }
