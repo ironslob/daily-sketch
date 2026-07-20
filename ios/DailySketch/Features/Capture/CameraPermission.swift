@@ -1,6 +1,5 @@
 import AVFoundation
 import Foundation
-import UIKit
 
 enum CameraAuthorizationStatus: Equatable, Sendable {
     case notDetermined
@@ -27,7 +26,7 @@ struct SystemCameraAuthorizer: CameraAuthorizing {
     }
 
     var isCameraAvailable: Bool {
-        UIImagePickerController.isSourceTypeAvailable(.camera)
+        AVCaptureDevice.default(for: .video) != nil
     }
 
     func requestAccess() async -> Bool {
