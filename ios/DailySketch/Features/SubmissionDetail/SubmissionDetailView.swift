@@ -5,8 +5,9 @@ struct SubmissionDetailView: View {
     @Environment(\.dismiss) private var dismiss
     @Bindable private var model: SubmissionDetailViewModel
     @State private var showsDeleteConfirmation = false
-    @State private var showsPlaceholderAction = false
-    @State private var placeholderActionMessage = ""
+    @State private var showsBlockConfirmation = false
+    @State private var reportModel: ReportViewModel?
+    @State private var pendingBlockUserId: UUID?
     @State private var reflectionPendingDelete: ReflectionModel?
     @State private var shareItems: [Any] = []
     @State private var showsShareSheet = false
@@ -32,8 +33,10 @@ struct SubmissionDetailView: View {
 
             case .deleted:
                 EmptyStateView(
-                    title: "Sketch deleted",
-                    message: "This submission is no longer available."
+                    title: model.didBlockAuthor ? "User blocked" : "Sketch deleted",
+                    message: model.didBlockAuthor
+                        ? "Their content no longer appears in your feed."
+                        : "This submission is no longer available."
                 )
 
             case .loaded(let submission):
@@ -66,6 +69,25 @@ struct SubmissionDetailView: View {
             Text("This removes your sketch from the community feed and your profile.")
         }
         .confirmationDialog(
+            "Block this user?",
+            isPresented: $showsBlockConfirmation,
+            titleVisibility: .visible
+        ) {
+            Button("Block User", role: .destructive) {
+                if let userId = pendingBlockUserId {
+                    Task {
+                        await model.blockAuthor(userId: userId)
+                        if model.didBlockAuthor {
+                            dismiss()
+                        }
+                    }
+                }
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("You won’t see each other’s content. They won’t be notified.")
+        }
+        .confirmationDialog(
             "Delete this reflection?",
             isPresented: Binding(
                 get: { reflectionPendingDelete != nil },
@@ -83,11 +105,6 @@ struct SubmissionDetailView: View {
                 reflectionPendingDelete = nil
             }
         }
-        .alert("Coming soon", isPresented: $showsPlaceholderAction) {
-            Button("OK", role: .cancel) {}
-        } message: {
-            Text(placeholderActionMessage)
-        }
         .alert(
             "Couldn’t update Like",
             isPresented: Binding(
@@ -98,6 +115,17 @@ struct SubmissionDetailView: View {
             Button("OK", role: .cancel) {}
         } message: {
             Text(model.likeErrorMessage ?? "")
+        }
+        .alert(
+            "Couldn’t block user",
+            isPresented: Binding(
+                get: { model.blockErrorMessage != nil },
+                set: { if !$0 { model.clearBlockError() } }
+            )
+        ) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(model.blockErrorMessage ?? "")
         }
         .sheet(isPresented: $model.showsAuthSheet) {
             NavigationStack {
@@ -113,7 +141,21 @@ struct SubmissionDetailView: View {
             .environment(dependencies)
             .onChange(of: dependencies.auth.isAuthenticated) { _, isAuthenticated in
                 if isAuthenticated {
-                    Task { await model.handleAuthenticationCompleted() }
+                    Task {
+                        await model.handleAuthenticationCompleted()
+                        presentPendingSafetyActionIfNeeded()
+                    }
+                }
+            }
+        }
+        .sheet(isPresented: Binding(
+            get: { reportModel != nil },
+            set: { if !$0 { reportModel = nil } }
+        )) {
+            if let reportModel {
+                ReportReasonSheet(model: reportModel) { userId in
+                    pendingBlockUserId = userId
+                    showsBlockConfirmation = true
                 }
             }
         }
@@ -142,14 +184,18 @@ struct SubmissionDetailView: View {
                     Label("Delete Submission", systemImage: "trash")
                 }
                 .disabled(model.isDeleting)
-            } else {
+            } else if case .loaded(let submission) = model.state {
                 Button {
-                    presentPlaceholder("Reporting arrives in Phase 11.")
+                    beginReport(
+                        targetType: .submission,
+                        targetId: submission.id,
+                        blockableUserId: submission.userId
+                    )
                 } label: {
                     Label("Report", systemImage: "exclamationmark.bubble")
                 }
                 Button {
-                    presentPlaceholder("Blocking arrives in Phase 11.")
+                    beginBlock(userId: submission.userId)
                 } label: {
                     Label("Block User", systemImage: "hand.raised")
                 }
@@ -334,9 +380,19 @@ struct SubmissionDetailView: View {
                     )
                 } else {
                     ForEach(model.reflections) { reflection in
-                        ReflectionRow(reflection: reflection) {
-                            reflectionPendingDelete = reflection
-                        }
+                        ReflectionRow(
+                            reflection: reflection,
+                            onDelete: reflection.isAuthor ? { reflectionPendingDelete = reflection } : nil,
+                            onReport: reflection.isAuthor
+                                ? nil
+                                : {
+                                    beginReport(
+                                        targetType: .reflection,
+                                        targetId: reflection.id,
+                                        blockableUserId: reflection.userId
+                                    )
+                                }
+                        )
                         .onAppear {
                             Task { await model.loadMoreReflectionsIfNeeded(currentItem: reflection) }
                         }
@@ -408,9 +464,67 @@ struct SubmissionDetailView: View {
         return "Sketch by \(submission.displayName). Prompt: \(submission.promptWords.joined(separator: ", "))"
     }
 
-    private func presentPlaceholder(_ message: String) {
-        placeholderActionMessage = message
-        showsPlaceholderAction = true
+    private func beginReport(
+        targetType: ReportTargetKind,
+        targetId: UUID,
+        blockableUserId: UUID?
+    ) {
+        if !dependencies.auth.isAuthenticated {
+            switch targetType {
+            case .submission:
+                model.requestReportSubmission()
+            case .reflection:
+                model.requestReportReflection(targetId)
+            case .profile:
+                break
+            }
+            return
+        }
+        reportModel = ReportViewModel(
+            targetType: targetType,
+            targetId: targetId,
+            blockableUserId: blockableUserId,
+            safetyService: dependencies.safetyRepository,
+            accessTokenProvider: { dependencies.auth.accessToken }
+        )
+    }
+
+    private func beginBlock(userId: UUID) {
+        if !dependencies.auth.isAuthenticated {
+            model.requestBlockAuthor()
+            return
+        }
+        pendingBlockUserId = userId
+        showsBlockConfirmation = true
+    }
+
+    private func presentPendingSafetyActionIfNeeded() {
+        guard let pending = model.consumePendingSafetyAction() else { return }
+        guard case .loaded(let submission) = model.state else { return }
+        switch pending {
+        case .reportSubmission:
+            reportModel = ReportViewModel(
+                targetType: .submission,
+                targetId: submission.id,
+                blockableUserId: submission.userId,
+                safetyService: dependencies.safetyRepository,
+                accessTokenProvider: { dependencies.auth.accessToken }
+            )
+        case .blockAuthor:
+            pendingBlockUserId = submission.userId
+            showsBlockConfirmation = true
+        case .reportReflection(let reflectionId):
+            let authorId = model.reflections.first(where: { $0.id == reflectionId })?.userId
+            reportModel = ReportViewModel(
+                targetType: .reflection,
+                targetId: reflectionId,
+                blockableUserId: authorId,
+                safetyService: dependencies.safetyRepository,
+                accessTokenProvider: { dependencies.auth.accessToken }
+            )
+        case .like, .postReflection:
+            break
+        }
     }
 }
 
@@ -476,6 +590,7 @@ private struct FlexibleChipRow: View {
                         isOwner: true,
                         imageURL: URL(string: "https://example.test/display")!,
                         thumbnailURL: URL(string: "https://example.test/thumb")!,
+                        userId: UUID(),
                         username: "sketchy",
                         displayName: "Sketcher",
                         promptWords: ["Chocolate", "Coffee", "Banana"],

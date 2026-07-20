@@ -3,6 +3,7 @@
 from fastapi import FastAPI
 
 from app.api.health import router as health_router
+from app.api.moderation import router as moderation_router
 from app.api.v1 import router as v1_router
 from app.core.errors import register_exception_handlers
 from app.core.logging import configure_logging
@@ -24,6 +25,7 @@ def create_app() -> FastAPI:
     register_exception_handlers(application)
     application.include_router(health_router)
     application.include_router(v1_router)
+    application.include_router(moderation_router)
     return application
 
 

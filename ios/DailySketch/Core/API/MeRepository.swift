@@ -23,7 +23,11 @@ protocol PreferencesServing: Sendable {
     ) async throws -> UserPreferencesModel
 }
 
-struct MeRepository: MeFetching, ProfileUpdating, PreferencesServing {
+protocol AccountDeleting: Sendable {
+    func deleteAccount(accessToken: String, idempotencyKey: String?) async throws
+}
+
+struct MeRepository: MeFetching, ProfileUpdating, PreferencesServing, AccountDeleting {
     let baseURL: URL
 
     func fetchMe(accessToken: String) async throws -> CurrentUserProfile {
@@ -31,6 +35,15 @@ struct MeRepository: MeFetching, ProfileUpdating, PreferencesServing {
         do {
             let user = try await MeAPI.getMe()
             return mapProfile(user)
+        } catch {
+            throw mapAPIError(error)
+        }
+    }
+
+    func deleteAccount(accessToken: String, idempotencyKey: String?) async throws {
+        configureClient(accessToken: accessToken)
+        do {
+            _ = try await MeAPI.deleteMe(idempotencyKey: idempotencyKey)
         } catch {
             throw mapAPIError(error)
         }

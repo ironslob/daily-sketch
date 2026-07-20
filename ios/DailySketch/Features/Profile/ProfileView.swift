@@ -4,6 +4,17 @@ struct ProfileView: View {
     @Environment(AppDependencies.self) private var dependencies
     let mode: ProfileViewModel.Mode
     @State private var model: ProfileViewModel?
+    @State private var reportModel: ReportViewModel?
+    @State private var showsBlockConfirmation = false
+    @State private var showsAuthSheet = false
+    @State private var authSheetMode: AuthenticationView.Mode = .signUp
+    @State private var pendingProfileSafetyAction: ProfileSafetyAction?
+    @State private var blockErrorMessage: String?
+
+    private enum ProfileSafetyAction {
+        case report
+        case block
+    }
 
     var body: some View {
         Group {
@@ -26,7 +37,84 @@ struct ProfileView: View {
                     }
                     .accessibilityLabel("Settings")
                 }
+            } else if case .other = mode, let profile = model?.profile, !profile.isSelf {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Menu {
+                        Button {
+                            beginProfileReport(profile)
+                        } label: {
+                            Label("Report", systemImage: "exclamationmark.bubble")
+                        }
+                        Button {
+                            beginProfileBlock(profile)
+                        } label: {
+                            Label("Block User", systemImage: "hand.raised")
+                        }
+                    } label: {
+                        Image(systemName: "ellipsis")
+                    }
+                    .accessibilityLabel("More actions")
+                }
             }
+        }
+        .confirmationDialog(
+            "Block this user?",
+            isPresented: $showsBlockConfirmation,
+            titleVisibility: .visible
+        ) {
+            Button("Block User", role: .destructive) {
+                Task { await confirmProfileBlock() }
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("You won’t see each other’s content. They won’t be notified.")
+        }
+        .sheet(isPresented: Binding(
+            get: { reportModel != nil },
+            set: { if !$0 { reportModel = nil } }
+        )) {
+            if let reportModel {
+                ReportReasonSheet(model: reportModel) { _ in
+                    showsBlockConfirmation = true
+                }
+            }
+        }
+        .sheet(isPresented: $showsAuthSheet) {
+            NavigationStack {
+                AuthenticationView(mode: authSheetMode)
+                    .toolbar {
+                        ToolbarItem(placement: .cancellationAction) {
+                            Button("Close") { showsAuthSheet = false }
+                        }
+                    }
+            }
+            .environment(dependencies)
+            .onChange(of: dependencies.auth.isAuthenticated) { _, isAuthenticated in
+                if isAuthenticated, let profile = model?.profile {
+                    showsAuthSheet = false
+                    switch pendingProfileSafetyAction {
+                    case .report:
+                        pendingProfileSafetyAction = nil
+                        presentReport(for: profile)
+                    case .block:
+                        pendingProfileSafetyAction = nil
+                        showsBlockConfirmation = true
+                    case .none:
+                        break
+                    }
+                }
+            }
+        }
+        .alert(
+            "Couldn’t block user",
+            isPresented: Binding(
+                get: { blockErrorMessage != nil },
+                set: { if !$0 { blockErrorMessage = nil } }
+            )
+        ) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(blockErrorMessage ?? "")
         }
         .task(id: taskIdentity) {
             let next = ProfileViewModel(
@@ -258,6 +346,55 @@ struct ProfileView: View {
             }
             .padding(.horizontal, AppSpacing.screenHorizontal)
             .padding(.vertical, AppSpacing.section)
+        }
+    }
+
+    private func beginProfileReport(_ profile: PublicProfileModel) {
+        guard dependencies.auth.isAuthenticated else {
+            pendingProfileSafetyAction = .report
+            authSheetMode = .signUp
+            showsAuthSheet = true
+            return
+        }
+        presentReport(for: profile)
+    }
+
+    private func beginProfileBlock(_ profile: PublicProfileModel) {
+        guard dependencies.auth.isAuthenticated else {
+            pendingProfileSafetyAction = .block
+            authSheetMode = .signUp
+            showsAuthSheet = true
+            return
+        }
+        showsBlockConfirmation = true
+    }
+
+    private func presentReport(for profile: PublicProfileModel) {
+        reportModel = ReportViewModel(
+            targetType: .profile,
+            targetId: profile.id,
+            blockableUserId: profile.id,
+            safetyService: dependencies.safetyRepository,
+            accessTokenProvider: { dependencies.auth.accessToken }
+        )
+    }
+
+    private func confirmProfileBlock() async {
+        guard let profile = model?.profile else { return }
+        guard let token = dependencies.auth.accessToken else { return }
+        do {
+            _ = try await dependencies.safetyRepository.blockUser(
+                accessToken: token,
+                userId: profile.id
+            )
+            dependencies.navigation.feedNeedsRefresh = true
+            if !dependencies.navigation.homePath.isEmpty {
+                dependencies.navigation.homePath.removeLast()
+            } else if !dependencies.navigation.profilePath.isEmpty {
+                dependencies.navigation.profilePath.removeLast()
+            }
+        } catch {
+            blockErrorMessage = error.localizedDescription
         }
     }
 }

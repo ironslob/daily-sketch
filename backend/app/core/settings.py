@@ -63,6 +63,10 @@ class Settings(BaseSettings):
     )
     descope_audience: str = Field(default="replace-me", alias="DESCOPE_AUDIENCE")
     descope_jwks_url: str | None = Field(default=None, alias="DESCOPE_JWKS_URL")
+    moderation_operator_token: str | None = Field(
+        default=None,
+        alias="MODERATION_OPERATOR_TOKEN",
+    )
 
     @field_validator("request_timeout_seconds")
     @classmethod

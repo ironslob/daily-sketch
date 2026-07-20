@@ -55,6 +55,7 @@ struct RootTabView: View {
                     submissionId: submissionId,
                     submissionService: dependencies.submissionRepository,
                     socialService: dependencies.socialRepository,
+                    safetyService: dependencies.safetyRepository,
                     isAuthenticated: { dependencies.auth.isAuthenticated },
                     accessTokenProvider: { dependencies.auth.accessToken },
                     onDeleted: {
@@ -63,6 +64,9 @@ struct RootTabView: View {
                     onLikeChanged: { id, liked, count in
                         _ = (id, liked, count)
                         dependencies.navigation.feedNeedsRefresh = true
+                    },
+                    onBlockedUser: { _ in
+                        dependencies.navigation.feedNeedsRefresh = true
                     }
                 )
             )
@@ -70,6 +74,10 @@ struct RootTabView: View {
             ProfileView(mode: .other(username: username))
         case .editProfile:
             EditProfileView()
+        case .blockedUsers:
+            BlockedUsersView()
+        case .deleteAccount:
+            DeleteAccountView()
         }
     }
 }

@@ -10,6 +10,7 @@ DailySketchAPI/Classes/OpenAPIs/APIs/HealthAPI.swift
 DailySketchAPI/Classes/OpenAPIs/APIs/MeAPI.swift
 DailySketchAPI/Classes/OpenAPIs/APIs/PromptsAPI.swift
 DailySketchAPI/Classes/OpenAPIs/APIs/ReflectionsAPI.swift
+DailySketchAPI/Classes/OpenAPIs/APIs/ReportsAPI.swift
 DailySketchAPI/Classes/OpenAPIs/APIs/SketchSessionsAPI.swift
 DailySketchAPI/Classes/OpenAPIs/APIs/SubmissionsAPI.swift
 DailySketchAPI/Classes/OpenAPIs/APIs/UploadsAPI.swift
@@ -20,8 +21,13 @@ DailySketchAPI/Classes/OpenAPIs/Extensions.swift
 DailySketchAPI/Classes/OpenAPIs/JSONDataEncoding.swift
 DailySketchAPI/Classes/OpenAPIs/JSONEncodingHelper.swift
 DailySketchAPI/Classes/OpenAPIs/Models.swift
+DailySketchAPI/Classes/OpenAPIs/Models/AccountDeletionResponse.swift
 DailySketchAPI/Classes/OpenAPIs/Models/AppearancePreference.swift
+DailySketchAPI/Classes/OpenAPIs/Models/BlockState.swift
+DailySketchAPI/Classes/OpenAPIs/Models/BlockedUserSummary.swift
+DailySketchAPI/Classes/OpenAPIs/Models/BlockedUsersResponse.swift
 DailySketchAPI/Classes/OpenAPIs/Models/CreateReflectionRequest.swift
+DailySketchAPI/Classes/OpenAPIs/Models/CreateReportRequest.swift
 DailySketchAPI/Classes/OpenAPIs/Models/CreateSketchSessionRequest.swift
 DailySketchAPI/Classes/OpenAPIs/Models/CreateSubmissionRequest.swift
 DailySketchAPI/Classes/OpenAPIs/Models/CreateUploadRequest.swift
@@ -43,6 +49,9 @@ DailySketchAPI/Classes/OpenAPIs/Models/PublicUser.swift
 DailySketchAPI/Classes/OpenAPIs/Models/RecentFeed.swift
 DailySketchAPI/Classes/OpenAPIs/Models/Reflection.swift
 DailySketchAPI/Classes/OpenAPIs/Models/ReflectionList.swift
+DailySketchAPI/Classes/OpenAPIs/Models/ReportReason.swift
+DailySketchAPI/Classes/OpenAPIs/Models/ReportResponse.swift
+DailySketchAPI/Classes/OpenAPIs/Models/ReportTargetType.swift
 DailySketchAPI/Classes/OpenAPIs/Models/SignedUpload.swift
 DailySketchAPI/Classes/OpenAPIs/Models/SketchSession.swift
 DailySketchAPI/Classes/OpenAPIs/Models/SketchSessionEventRequest.swift
@@ -63,8 +72,13 @@ DailySketchAPI/Classes/OpenAPIs/URLSessionImplementations.swift
 DailySketchAPI/Classes/OpenAPIs/Validation.swift
 Package.swift
 README.md
+docs/AccountDeletionResponse.md
 docs/AppearancePreference.md
+docs/BlockState.md
+docs/BlockedUserSummary.md
+docs/BlockedUsersResponse.md
 docs/CreateReflectionRequest.md
+docs/CreateReportRequest.md
 docs/CreateSketchSessionRequest.md
 docs/CreateSubmissionRequest.md
 docs/CreateUploadRequest.md
@@ -91,6 +105,10 @@ docs/RecentFeed.md
 docs/Reflection.md
 docs/ReflectionList.md
 docs/ReflectionsAPI.md
+docs/ReportReason.md
+docs/ReportResponse.md
+docs/ReportTargetType.md
+docs/ReportsAPI.md
 docs/SignedUpload.md
 docs/SketchSession.md
 docs/SketchSessionEventRequest.md

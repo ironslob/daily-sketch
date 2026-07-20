@@ -3,6 +3,7 @@ import SwiftUI
 struct ReflectionRow: View {
     let reflection: ReflectionModel
     var onDelete: (() -> Void)?
+    var onReport: (() -> Void)?
 
     var body: some View {
         HStack(alignment: .top, spacing: AppSpacing.md) {
@@ -28,10 +29,16 @@ struct ReflectionRow: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
 
-            if reflection.isAuthor {
+            if reflection.isAuthor || onReport != nil {
                 Menu {
-                    Button(role: .destructive, action: { onDelete?() }) {
-                        Label("Delete Reflection", systemImage: "trash")
+                    if reflection.isAuthor {
+                        Button(role: .destructive, action: { onDelete?() }) {
+                            Label("Delete Reflection", systemImage: "trash")
+                        }
+                    } else if let onReport {
+                        Button(action: onReport) {
+                            Label("Report", systemImage: "exclamationmark.bubble")
+                        }
                     }
                 } label: {
                     Image(systemName: "ellipsis")
@@ -85,7 +92,8 @@ struct ReflectionRow: View {
             body: "Such a warm interpretation of today’s words.",
             createdAt: Date().addingTimeInterval(-3_600),
             isAuthor: false
-        )
+        ),
+        onReport: {}
     )
     .padding()
     .background(AppColors.background)

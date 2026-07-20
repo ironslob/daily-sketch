@@ -37,6 +37,31 @@ async def get_current_user(
     return await UserService(session).resolve_or_provision(verified)
 
 
+async def get_current_user_allowing_pending_deletion(
+    request: Request,
+    credentials: HTTPAuthorizationCredentials | None = Depends(_bearer),
+    session: AsyncSession = Depends(get_db_session),
+    settings: Settings = Depends(get_settings),
+) -> User:
+    """Like get_current_user, but permits pending_deletion for idempotent DELETE /me."""
+    if credentials is None or credentials.scheme.lower() != "bearer" or not credentials.credentials:
+        raise AppError(
+            code="unauthenticated",
+            message="Authentication is required.",
+            status_code=401,
+            details={"reason": "missing_token"},
+        )
+
+    verifier: TokenVerifier = getattr(
+        request.app.state, "token_verifier", None
+    ) or get_token_verifier(settings)
+    verified = verifier.verify(credentials.credentials)
+    return await UserService(session).resolve_or_provision(
+        verified,
+        allow_pending_deletion=True,
+    )
+
+
 async def get_optional_current_user(
     request: Request,
     credentials: HTTPAuthorizationCredentials | None = Depends(_bearer),

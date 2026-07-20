@@ -2,7 +2,7 @@
 
 Native iOS creative journal with a FastAPI backend. Every user receives the same three-word Daily Prompt; guests can sketch before authenticating.
 
-This repository is a monorepo. Phase 10 delivers public profiles, streaks, avatar upload, and native sharing on top of Phase 9’s Likes and Reflections.
+This repository is a monorepo. Phase 11 delivers reporting, blocking, operator moderation, and account deletion on top of Phase 10’s public profiles.
 
 ## Prerequisites
 
@@ -48,6 +48,19 @@ make ios-build
 | `backend/` | FastAPI application, Alembic migrations, tests |
 | `ios/` | SwiftUI app (`DailySketch`) |
 | `spec/` | Product, design, architecture, implementation, infrastructure |
+
+## Phase 11 — Safety, Blocking, Reporting, and Account Deletion
+
+- **Contract (public):**
+  - `POST /api/v1/reports` — create a report (`submission` / `reflection` / `profile`); confirmation-only response (no moderation internals).
+  - `GET /api/v1/me/blocked-users` — list users you block.
+  - `PUT` / `DELETE /api/v1/users/{user_id}/block` — idempotent block/unblock.
+  - `DELETE /api/v1/me` — request deletion → `202` / `pending_deletion` (optional `Idempotency-Key`).
+- **Internal (not in public OpenAPI):** `/internal/moderation/*` guarded by `X-Moderation-Token` matching `MODERATION_OPERATOR_TOKEN` — list/inspect reports, hide/remove/restore content, suspend/restore users.
+- **Backend:** Migration `0010_blocks_reports` (`user_blocks`, `reports`, `moderation_actions`). Reciprocal block filtering on feed, detail, reflections, and profiles. Finalize pending deletions with `make account-deletion-finalize` (`python -m app.jobs.account_deletion`). Seeds include sample blocks/reports via the safety seed.
+- **iOS:** Report sheet (private copy + Block User offer), block confirmation, Blocked Users, Delete Account confirmation, Settings Safety section; guest report/block resume auth; content disappears after block.
+- **ADRs:** `spec/decisions/0008-block-semantics.md`, `0009-account-deletion.md`.
+- **Out of Phase 11:** Full HTTP rate-limit middleware (Phase 13); activity inbox UI; public deep links.
 
 ## Phase 10 — Public Profiles, Streaks, and Native Sharing
 

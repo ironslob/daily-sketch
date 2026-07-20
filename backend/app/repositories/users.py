@@ -69,6 +69,8 @@ class UserRepository:
         avatar_upload_id: uuid.UUID | None | object = ...,
         status: UserStatus | None = None,
         profile_completed_at: datetime | None | object = ...,
+        deleted_at: datetime | None | object = ...,
+        commit: bool = True,
     ) -> User:
         if username is not None:
             user.username = username
@@ -84,6 +86,12 @@ class UserRepository:
             user.status = status
         if profile_completed_at is not ...:
             user.profile_completed_at = profile_completed_at  # type: ignore[assignment]
+        if deleted_at is not ...:
+            user.deleted_at = deleted_at  # type: ignore[assignment]
+
+        if not commit:
+            await self._session.flush()
+            return user
 
         try:
             await self._session.commit()
@@ -96,3 +104,24 @@ class UserRepository:
             ) from exc
         await self._session.refresh(user)
         return user
+
+    async def list_pending_deletion(self) -> list[User]:
+        result = await self._session.execute(
+            select(User).where(User.status == UserStatus.pending_deletion)
+        )
+        return list(result.scalars().all())
+
+    async def set_status(
+        self,
+        user: User,
+        *,
+        status: UserStatus,
+        deleted_at: datetime | None | object = ...,
+        commit: bool = True,
+    ) -> User:
+        return await self.update_profile(
+            user,
+            status=status,
+            deleted_at=deleted_at,
+            commit=commit,
+        )

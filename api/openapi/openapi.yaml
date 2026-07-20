@@ -179,6 +179,77 @@ paths:
           $ref: "#/components/responses/ValidationError"
         "500":
           $ref: "#/components/responses/InternalError"
+    delete:
+      operationId: deleteMe
+      tags:
+        - me
+      summary: Request account deletion
+      description: |
+        Transitions the authenticated account to `pending_deletion`, immediately
+        hides the public profile and Submissions, soft-deletes the user's
+        Reflections, and removes the user's Likes. Access is disabled.
+        Media and Descope identity cleanup run asynchronously via a scheduled
+        finalize job. The request is idempotent: repeating while already
+        pending returns the same confirmation. Optional `Idempotency-Key`
+        may be supplied for client retries.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      responses:
+        "202":
+          description: Account deletion accepted and pending finalization
+          headers:
+            X-Request-ID:
+              $ref: "#/components/headers/RequestId"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccountDeletionResponse"
+              example:
+                status: pending_deletion
+                message: Your account deletion has been scheduled.
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "500":
+          $ref: "#/components/responses/InternalError"
+  /api/v1/me/blocked-users:
+    get:
+      operationId: listMyBlockedUsers
+      tags:
+        - me
+      summary: List users blocked by the current user
+      description: |
+        Returns users the authenticated user has blocked. Block relationships
+        are private and are never exposed on public profiles.
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Blocked users
+          headers:
+            X-Request-ID:
+              $ref: "#/components/headers/RequestId"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BlockedUsersResponse"
+              example:
+                items:
+                  - user_id: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+                    username: noisy_sketcher
+                    display_name: Noisy
+                    avatar_url: null
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "500":
+          $ref: "#/components/responses/InternalError"
   /api/v1/me/preferences:
     get:
       operationId: getMyPreferences
@@ -262,6 +333,90 @@ paths:
           $ref: "#/components/responses/ValidationError"
         "500":
           $ref: "#/components/responses/InternalError"
+  /api/v1/users/{user_id}/block:
+    put:
+      operationId: blockUser
+      tags:
+        - users
+      summary: Block a user
+      description: |
+        Idempotently blocks another user. The blocked user's Submissions are
+        hidden from the blocker's feed and profile browsing, Reflections are
+        hidden, and interaction (Like / Reflection) is rejected in both
+        directions where reciprocal filtering applies. Self-block is rejected.
+        Block relationships are private.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          description: UUID of the user to block.
+          schema:
+            $ref: "#/components/schemas/UUID"
+          example: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+      responses:
+        "200":
+          description: Block state after the request
+          headers:
+            X-Request-ID:
+              $ref: "#/components/headers/RequestId"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BlockState"
+              example:
+                blocked: true
+                user_id: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+        "500":
+          $ref: "#/components/responses/InternalError"
+    delete:
+      operationId: unblockUser
+      tags:
+        - users
+      summary: Unblock a user
+      description: |
+        Idempotently removes a block. Unblock when no block exists is safe
+        and returns `blocked: false`.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          description: UUID of the user to unblock.
+          schema:
+            $ref: "#/components/schemas/UUID"
+          example: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+      responses:
+        "200":
+          description: Block state after the request
+          headers:
+            X-Request-ID:
+              $ref: "#/components/headers/RequestId"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BlockState"
+              example:
+                blocked: false
+                user_id: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalError"
   /api/v1/users/{username}:
     get:
       operationId: getPublicUser
@@ -275,6 +430,8 @@ paths:
         Excludes email, Descope subject, preferences, moderation internals,
         Drafts, and private session analytics. Incomplete, suspended, and
         deleted profiles return 404.
+        When the authenticated viewer has a block relationship with the
+        profile owner in either direction, the profile is unavailable (404).
       parameters:
         - name: username
           in: path
@@ -1344,6 +1501,53 @@ paths:
           $ref: "#/components/responses/NotFound"
         "409":
           $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+        "500":
+          $ref: "#/components/responses/InternalError"
+  /api/v1/reports:
+    post:
+      operationId: createReport
+      tags:
+        - reports
+      summary: Report content or a profile
+      description: |
+        Creates a report against a Submission, Reflection, or user profile.
+        The reporter receives confirmation only; private moderation details
+        are never returned. Duplicate open reports from the same reporter
+        against the same target are coalesced (idempotent confirmation).
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateReportRequest"
+            example:
+              target_type: submission
+              target_id: d4e5f6a7-b8c9-0123-def0-234567890123
+              reason: inappropriate
+              notes: null
+      responses:
+        "201":
+          description: Report accepted
+          headers:
+            X-Request-ID:
+              $ref: "#/components/headers/RequestId"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReportResponse"
+              example:
+                id: b2c3d4e5-f6a7-8901-bcde-f12345678901
+                message: Thank you. Your report has been received.
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
         "422":
           $ref: "#/components/responses/ValidationError"
         "500":
@@ -2661,6 +2865,118 @@ components:
             - "null"
           description: Opaque cursor for the next page, or null when no further pages exist.
           example: null
+    ReportTargetType:
+      type: string
+      description: Type of reported entity.
+      enum:
+        - submission
+        - reflection
+        - profile
+      example: submission
+    ReportReason:
+      type: string
+      description: Reason selected by the reporter.
+      enum:
+        - inappropriate
+        - harassment
+        - hate
+        - spam
+        - intellectual_property
+        - self_harm
+        - other
+      example: inappropriate
+    CreateReportRequest:
+      type: object
+      required:
+        - target_type
+        - target_id
+        - reason
+      properties:
+        target_type:
+          $ref: "#/components/schemas/ReportTargetType"
+        target_id:
+          $ref: "#/components/schemas/UUID"
+        reason:
+          $ref: "#/components/schemas/ReportReason"
+        notes:
+          type:
+            - string
+            - "null"
+          description: Optional detail; typically used when reason is `other`.
+          maxLength: 1000
+          example: null
+    ReportResponse:
+      type: object
+      description: |
+        Confirmation returned to the reporter. Does not include private
+        moderation status, reviewer identity, or resolution notes.
+      required:
+        - id
+        - message
+      properties:
+        id:
+          $ref: "#/components/schemas/UUID"
+        message:
+          type: string
+          example: Thank you. Your report has been received.
+    BlockState:
+      type: object
+      required:
+        - blocked
+        - user_id
+      properties:
+        blocked:
+          type: boolean
+          description: True when the authenticated user currently blocks `user_id`.
+          example: true
+        user_id:
+          $ref: "#/components/schemas/UUID"
+    BlockedUserSummary:
+      type: object
+      required:
+        - user_id
+        - username
+        - display_name
+        - avatar_url
+      properties:
+        user_id:
+          $ref: "#/components/schemas/UUID"
+        username:
+          type: string
+          example: noisy_sketcher
+        display_name:
+          type: string
+          example: Noisy
+        avatar_url:
+          type:
+            - string
+            - "null"
+          format: uri
+          example: null
+    BlockedUsersResponse:
+      type: object
+      required:
+        - items
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/BlockedUserSummary"
+    AccountDeletionResponse:
+      type: object
+      description: Confirmation that account deletion has been accepted.
+      required:
+        - status
+        - message
+      properties:
+        status:
+          type: string
+          enum:
+            - pending_deletion
+          example: pending_deletion
+        message:
+          type: string
+          example: Your account deletion has been scheduled.
 tags:
   - name: health
     description: Process health probes
@@ -2680,3 +2996,5 @@ tags:
     description: Submission publication, ownership, Likes, and Reflections
   - name: reflections
     description: Reflection ownership endpoints
+  - name: reports
+    description: Content and profile reporting endpoints

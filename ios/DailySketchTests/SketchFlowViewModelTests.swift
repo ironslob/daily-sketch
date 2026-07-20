@@ -230,6 +230,7 @@ final class SketchFlowViewModelTests: XCTestCase {
             isOwner: true,
             imageURL: URL(string: "https://example.test/display")!,
             thumbnailURL: URL(string: "https://example.test/thumb")!,
+            userId: UUID(),
             username: "sketchy",
             displayName: "Sketcher",
             promptWords: prompt.words,

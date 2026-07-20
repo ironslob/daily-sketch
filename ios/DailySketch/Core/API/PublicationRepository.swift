@@ -23,6 +23,7 @@ struct SubmissionModel: Equatable, Sendable, Identifiable {
     let isOwner: Bool
     let imageURL: URL
     let thumbnailURL: URL
+    let userId: UUID
     let username: String
     let displayName: String
     let promptWords: [String]
@@ -43,6 +44,7 @@ struct SubmissionModel: Equatable, Sendable, Identifiable {
             isOwner: isOwner,
             imageURL: imageURL,
             thumbnailURL: thumbnailURL,
+            userId: userId,
             username: username,
             displayName: displayName,
             promptWords: promptWords,
@@ -65,6 +67,7 @@ struct SubmissionModel: Equatable, Sendable, Identifiable {
             isOwner: isOwner,
             imageURL: imageURL,
             thumbnailURL: thumbnailURL,
+            userId: userId,
             username: username,
             displayName: displayName,
             promptWords: promptWords,
@@ -340,6 +343,7 @@ struct SubmissionRepository: SubmissionServing {
             isOwner: submission.isOwner,
             imageURL: URL(string: submission.imageUrl) ?? URL(string: "about:blank")!,
             thumbnailURL: URL(string: submission.thumbnailUrl) ?? URL(string: "about:blank")!,
+            userId: submission.user.id,
             username: submission.user.username,
             displayName: submission.user.displayName,
             promptWords: [
@@ -484,6 +488,7 @@ final class RecordingSubmissionRepository: SubmissionServing, @unchecked Sendabl
             isOwner: true,
             imageURL: URL(string: "https://example.test/display")!,
             thumbnailURL: URL(string: "https://example.test/thumb")!,
+            userId: UUID(),
             username: "sketchy",
             displayName: "Sketcher",
             promptWords: ["A", "B", "C"],

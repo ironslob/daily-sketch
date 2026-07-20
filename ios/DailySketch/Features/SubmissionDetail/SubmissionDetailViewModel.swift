@@ -20,6 +20,9 @@ final class SubmissionDetailViewModel {
     enum PendingSocialAction: Equatable {
         case like
         case postReflection
+        case reportSubmission
+        case blockAuthor
+        case reportReflection(UUID)
     }
 
     static let reflectionMaxLength = 500
@@ -43,27 +46,35 @@ final class SubmissionDetailViewModel {
     private let submissionId: UUID
     private let submissionService: any SubmissionServing
     private let socialService: any SocialServing
+    private let safetyService: any SafetyServing
     private let isAuthenticated: () -> Bool
     private let accessTokenProvider: () -> String?
     var onDeleted: (() -> Void)?
     var onLikeChanged: ((UUID, Bool, Int) -> Void)?
+    var onBlockedUser: ((UUID) -> Void)?
+    private(set) var blockErrorMessage: String?
+    private(set) var didBlockAuthor = false
 
     init(
         submissionId: UUID,
         submissionService: any SubmissionServing,
         socialService: any SocialServing,
+        safetyService: any SafetyServing = RecordingSafetyRepository(),
         isAuthenticated: @escaping () -> Bool = { false },
         accessTokenProvider: @escaping () -> String?,
         onDeleted: (() -> Void)? = nil,
-        onLikeChanged: ((UUID, Bool, Int) -> Void)? = nil
+        onLikeChanged: ((UUID, Bool, Int) -> Void)? = nil,
+        onBlockedUser: ((UUID) -> Void)? = nil
     ) {
         self.submissionId = submissionId
         self.submissionService = submissionService
         self.socialService = socialService
+        self.safetyService = safetyService
         self.isAuthenticated = isAuthenticated
         self.accessTokenProvider = accessTokenProvider
         self.onDeleted = onDeleted
         self.onLikeChanged = onLikeChanged
+        self.onBlockedUser = onBlockedUser
     }
 
     func load() async {
@@ -304,6 +315,10 @@ final class SubmissionDetailViewModel {
         likeErrorMessage = nil
     }
 
+    func clearBlockError() {
+        blockErrorMessage = nil
+    }
+
     func presentSignIn() {
         authSheetMode = .signIn
         showsAuthSheet = true
@@ -314,15 +329,75 @@ final class SubmissionDetailViewModel {
         showsAuthSheet = true
     }
 
+    func requestReportSubmission() {
+        guard isAuthenticated() else {
+            pendingSocialAction = .reportSubmission
+            authSheetMode = .signUp
+            showsAuthSheet = true
+            return
+        }
+    }
+
+    func requestBlockAuthor() {
+        guard isAuthenticated() else {
+            pendingSocialAction = .blockAuthor
+            authSheetMode = .signUp
+            showsAuthSheet = true
+            return
+        }
+    }
+
+    func requestReportReflection(_ reflectionId: UUID) {
+        guard isAuthenticated() else {
+            pendingSocialAction = .reportReflection(reflectionId)
+            authSheetMode = .signUp
+            showsAuthSheet = true
+            return
+        }
+    }
+
+    func blockAuthor(userId: UUID) async {
+        guard let token = accessTokenProvider() else {
+            pendingSocialAction = .blockAuthor
+            authSheetMode = .signUp
+            showsAuthSheet = true
+            return
+        }
+        blockErrorMessage = nil
+        do {
+            _ = try await safetyService.blockUser(accessToken: token, userId: userId)
+            didBlockAuthor = true
+            onBlockedUser?(userId)
+            state = .deleted
+        } catch {
+            blockErrorMessage = error.localizedDescription
+        }
+    }
+
     func handleAuthenticationCompleted() async {
         showsAuthSheet = false
         guard let pending = pendingSocialAction else { return }
-        pendingSocialAction = nil
         switch pending {
         case .like:
+            pendingSocialAction = nil
             await toggleLike()
         case .postReflection:
+            pendingSocialAction = nil
             await postReflection()
+        case .reportSubmission, .blockAuthor, .reportReflection:
+            // View presents report/block UI once authenticated.
+            break
+        }
+    }
+
+    func consumePendingSafetyAction() -> PendingSocialAction? {
+        guard let pending = pendingSocialAction else { return nil }
+        switch pending {
+        case .reportSubmission, .blockAuthor, .reportReflection:
+            pendingSocialAction = nil
+            return pending
+        case .like, .postReflection:
+            return nil
         }
     }
 }

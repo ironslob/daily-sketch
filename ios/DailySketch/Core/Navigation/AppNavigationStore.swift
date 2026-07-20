@@ -8,6 +8,8 @@ enum AppRoute: Hashable {
     case submissionDetail(UUID)
     case publicProfile(username: String)
     case editProfile
+    case blockedUsers
+    case deleteAccount
 }
 
 @Observable

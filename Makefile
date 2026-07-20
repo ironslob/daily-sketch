@@ -1,6 +1,6 @@
 .PHONY: help up down logs backend-install backend-run backend-test backend-lint backend-typecheck \
 	db-migrate db-reset seed api-validate api-generate-ios api-check-generated test clean-local \
-	repo-checks docker-build ios-generate ios-build ios-test
+	repo-checks docker-build ios-generate ios-build ios-test account-deletion-finalize
 
 ROOT := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
 BACKEND := $(ROOT)/backend
@@ -10,7 +10,7 @@ help:
 	@echo "Daily Sketch Make targets:"
 	@echo "  up / down / logs / clean-local"
 	@echo "  backend-install / backend-run / backend-test / backend-lint / backend-typecheck"
-	@echo "  db-migrate / db-reset / seed"
+	@echo "  db-migrate / db-reset / seed / account-deletion-finalize"
 	@echo "  api-validate / api-generate-ios / api-check-generated"
 	@echo "  repo-checks / docker-build / ios-generate / ios-build / ios-test / test"
 
@@ -52,6 +52,10 @@ db-reset:
 
 seed:
 	cd $(BACKEND) && . .venv/bin/activate && python -m app.seeds.prompts --days 30
+	cd $(BACKEND) && . .venv/bin/activate && python -m app.seeds.safety
+
+account-deletion-finalize:
+	cd $(BACKEND) && . .venv/bin/activate && python -m app.jobs.account_deletion
 
 api-validate:
 	bash $(ROOT)/scripts/api-validate.sh

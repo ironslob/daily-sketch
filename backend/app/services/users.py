@@ -20,10 +20,18 @@ class UserService:
         self._repo = UserRepository(session)
         self._preferences = PreferencesRepository(session)
 
-    async def resolve_or_provision(self, token: VerifiedToken) -> User:
+    async def resolve_or_provision(
+        self,
+        token: VerifiedToken,
+        *,
+        allow_pending_deletion: bool = False,
+    ) -> User:
         existing = await self._repo.get_by_descope_subject(token.subject)
         if existing is not None:
-            self._enforce_account_status(existing)
+            self._enforce_account_status(
+                existing,
+                allow_pending_deletion=allow_pending_deletion,
+            )
             await self._ensure_preferences(existing.id)
             return existing
 
@@ -34,7 +42,10 @@ class UserService:
             status=UserStatus.incomplete,
         )
         await self._ensure_preferences(user.id)
-        self._enforce_account_status(user)
+        self._enforce_account_status(
+            user,
+            allow_pending_deletion=allow_pending_deletion,
+        )
         return user
 
     async def _ensure_preferences(self, user_id: uuid.UUID) -> None:
@@ -43,14 +54,24 @@ class UserService:
             await self._preferences.create_defaults(user_id)
 
     @staticmethod
-    def _enforce_account_status(user: User) -> None:
+    def _enforce_account_status(
+        user: User,
+        *,
+        allow_pending_deletion: bool = False,
+    ) -> None:
         if user.status == UserStatus.suspended:
             raise AppError(
                 code="account_suspended",
                 message="This account has been suspended.",
                 status_code=403,
             )
-        if user.status in {UserStatus.pending_deletion, UserStatus.deleted}:
+        if user.status == UserStatus.deleted:
+            raise AppError(
+                code="account_unavailable",
+                message="This account is no longer available.",
+                status_code=403,
+            )
+        if user.status == UserStatus.pending_deletion and not allow_pending_deletion:
             raise AppError(
                 code="account_unavailable",
                 message="This account is no longer available.",

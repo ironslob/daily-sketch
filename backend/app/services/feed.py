@@ -15,6 +15,7 @@ from app.repositories.likes import LikeRepository
 from app.repositories.submissions import SubmissionRepository
 from app.repositories.uploads import UploadRepository
 from app.schemas.feed import FeedItem, RecentFeedResponse
+from app.services.blocks import BlockService
 from app.services.feed_items import build_feed_item
 from app.services.media_urls import resolve_avatar_urls
 from app.storage.base import StorageAdapter
@@ -30,9 +31,11 @@ class FeedService:
         storage: StorageAdapter,
         settings: Settings | None = None,
     ) -> None:
+        self._session = session
         self._submissions = SubmissionRepository(session)
         self._likes = LikeRepository(session)
         self._uploads = UploadRepository(session)
+        self._blocks = BlockService(session, clock, settings=settings, storage=storage)
         self._clock = clock
         self._storage = storage
         self._settings = settings or get_settings()
@@ -49,12 +52,15 @@ class FeedService:
         if cursor:
             cursor_published_at, cursor_id = decode_cursor(cursor)
 
+        excluded = await self._blocks.exclude_ids_for(viewer.id if viewer else None)
+
         # Fetch one extra row to detect whether another page exists.
         rows = await self._submissions.list_recent_published(
             limit=limit + 1,
             cursor_published_at=cursor_published_at,
             cursor_id=cursor_id,
             viewer_id=viewer.id if viewer is not None else None,
+            excluded_author_ids=excluded or None,
         )
 
         page_rows = rows[:limit]

@@ -90,3 +90,9 @@ class LikeRepository:
         else:
             await self._session.flush()
         return True
+
+    async def list_for_user(self, user_id: uuid.UUID) -> list[SubmissionLike]:
+        result = await self._session.execute(
+            select(SubmissionLike).where(SubmissionLike.user_id == user_id)
+        )
+        return list(result.scalars().all())

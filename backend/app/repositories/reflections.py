@@ -110,3 +110,33 @@ class ReflectionRepository:
         else:
             await self._session.flush()
         return True
+
+    async def list_published_for_user(self, user_id: uuid.UUID) -> list[Reflection]:
+        result = await self._session.execute(
+            select(Reflection).where(
+                Reflection.user_id == user_id,
+                Reflection.status == ReflectionStatus.published,
+                Reflection.deleted_at.is_(None),
+            )
+        )
+        return list(result.scalars().all())
+
+    async def set_moderation_status(
+        self,
+        reflection: Reflection,
+        *,
+        status: ReflectionStatus,
+        deleted_at: datetime | None = None,
+        commit: bool = True,
+    ) -> Reflection:
+        reflection.status = status
+        if deleted_at is not None:
+            reflection.deleted_at = deleted_at
+        elif status == ReflectionStatus.published:
+            reflection.deleted_at = None
+        if commit:
+            await self._session.commit()
+            await self._session.refresh(reflection)
+        else:
+            await self._session.flush()
+        return reflection

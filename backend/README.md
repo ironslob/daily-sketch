@@ -7,7 +7,14 @@ FastAPI application for Daily Sketch. See the repository root README for local s
 - **Endpoints:** `GET /api/v1/prompts/today`, `GET /api/v1/prompts/{prompt_id}`, `GET /api/v1/feed/recent` (all unauthenticated).
 - **Service rules:** Only `published` prompts are returned. Missing today/id → `404 prompt_not_found`. Feed returns `{ "items": [], "next_cursor": null }` until Submissions exist.
 - **Clock:** `PromptService` uses injectable `Clock.today()` (UTC calendar date).
-- **Seed:** `make seed` / `python -m app.seeds.prompts` upserts deterministic three-word prompts (validated non-empty, unique within a prompt).
+- **Seed:** `make seed` / `python -m app.seeds.prompts` upserts deterministic three-word prompts (validated non-empty, unique within a prompt). `python -m app.seeds.safety` seeds sample block relationships and open reports for local testing.
+
+## Phase 11 — Safety
+
+- **Public:** reports, blocked-users, block/unblock, `DELETE /me` → `pending_deletion`.
+- **Internal:** `/internal/moderation/*` with `X-Moderation-Token` / `MODERATION_OPERATOR_TOKEN`.
+- **Finalize:** `make account-deletion-finalize`.
+- **ADRs:** `0008-block-semantics`, `0009-account-deletion`.
 
 ## Phase 2 — Authentication and user provisioning
 

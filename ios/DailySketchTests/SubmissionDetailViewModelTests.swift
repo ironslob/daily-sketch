@@ -21,6 +21,7 @@ final class SubmissionDetailViewModelTests: XCTestCase {
             isOwner: isOwner,
             imageURL: URL(string: "https://example.test/display")!,
             thumbnailURL: URL(string: "https://example.test/thumb")!,
+            userId: UUID(),
             username: "alexdraws",
             displayName: "Alex Rivers",
             promptWords: ["Leaf", "Green", "Organic"],

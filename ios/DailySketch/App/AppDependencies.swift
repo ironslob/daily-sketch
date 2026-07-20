@@ -15,6 +15,8 @@ final class AppDependencies {
     let uploadRepository: any UploadServing
     let submissionRepository: any SubmissionServing
     let socialRepository: any SocialServing
+    let safetyRepository: any SafetyServing
+    let accountDeleter: any AccountDeleting
     let directUploader: any DirectUploadTransporting
     let activeSessionStore: any ActiveSessionStoring
     let guestTimerPreferenceStore: any GuestTimerPreferenceStoring
@@ -36,6 +38,8 @@ final class AppDependencies {
         uploadRepository: any UploadServing,
         submissionRepository: any SubmissionServing,
         socialRepository: any SocialServing,
+        safetyRepository: any SafetyServing,
+        accountDeleter: any AccountDeleting,
         directUploader: any DirectUploadTransporting = URLSessionDirectUploader(),
         activeSessionStore: any ActiveSessionStoring,
         guestTimerPreferenceStore: any GuestTimerPreferenceStoring,
@@ -56,6 +60,8 @@ final class AppDependencies {
         self.uploadRepository = uploadRepository
         self.submissionRepository = submissionRepository
         self.socialRepository = socialRepository
+        self.safetyRepository = safetyRepository
+        self.accountDeleter = accountDeleter
         self.directUploader = directUploader
         self.activeSessionStore = activeSessionStore
         self.guestTimerPreferenceStore = guestTimerPreferenceStore
@@ -94,6 +100,7 @@ final class AppDependencies {
         let uploadRepository = UploadRepository(baseURL: environment.apiBaseURL)
         let submissionRepository = SubmissionRepository(baseURL: environment.apiBaseURL)
         let socialRepository = SocialRepository(baseURL: environment.apiBaseURL)
+        let safetyRepository = SafetyRepository(baseURL: environment.apiBaseURL)
         let activeSessionStore = ActiveSessionStore()
         let guestTimerPreferenceStore = GuestTimerPreferenceStore()
         let draftStore = DraftStore()
@@ -121,6 +128,8 @@ final class AppDependencies {
                 uploadRepository: uploadRepository,
                 submissionRepository: submissionRepository,
                 socialRepository: socialRepository,
+                safetyRepository: safetyRepository,
+                accountDeleter: repository,
                 activeSessionStore: activeSessionStore,
                 guestTimerPreferenceStore: guestTimerPreferenceStore,
                 draftStore: draftStore,
@@ -148,6 +157,8 @@ final class AppDependencies {
             uploadRepository: uploadRepository,
             submissionRepository: submissionRepository,
             socialRepository: socialRepository,
+            safetyRepository: safetyRepository,
+            accountDeleter: repository,
             activeSessionStore: activeSessionStore,
             guestTimerPreferenceStore: guestTimerPreferenceStore,
             draftStore: draftStore,

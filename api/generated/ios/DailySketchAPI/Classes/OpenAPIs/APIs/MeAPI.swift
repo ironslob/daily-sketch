@@ -13,6 +13,46 @@ import AnyCodable
 open class MeAPI {
 
     /**
+     Request account deletion
+     
+     - parameter idempotencyKey: (header) Client-generated key that makes a write operation safely retryable. Replaying the same key with the same request body returns the original response. Replaying with a different body returns &#x60;idempotency_key_conflict&#x60;.  (optional)
+     - returns: AccountDeletionResponse
+     */
+    @available(macOS 10.15, iOS 13.0, tvOS 13.0, watchOS 6.0, *)
+    open class func deleteMe(idempotencyKey: String? = nil) async throws -> AccountDeletionResponse {
+        return try await deleteMeWithRequestBuilder(idempotencyKey: idempotencyKey).execute().body
+    }
+
+    /**
+     Request account deletion
+     - DELETE /api/v1/me
+     - Transitions the authenticated account to `pending_deletion`, immediately hides the public profile and Submissions, soft-deletes the user's Reflections, and removes the user's Likes. Access is disabled. Media and Descope identity cleanup run asynchronously via a scheduled finalize job. The request is idempotent: repeating while already pending returns the same confirmation. Optional `Idempotency-Key` may be supplied for client retries. 
+     - Bearer Token:
+       - type: http
+       - name: bearerAuth
+     - responseHeaders: [X-Request-ID(UUID)]
+     - parameter idempotencyKey: (header) Client-generated key that makes a write operation safely retryable. Replaying the same key with the same request body returns the original response. Replaying with a different body returns &#x60;idempotency_key_conflict&#x60;.  (optional)
+     - returns: RequestBuilder<AccountDeletionResponse> 
+     */
+    open class func deleteMeWithRequestBuilder(idempotencyKey: String? = nil) -> RequestBuilder<AccountDeletionResponse> {
+        let localVariablePath = "/api/v1/me"
+        let localVariableURLString = DailySketchAPIAPI.basePath + localVariablePath
+        let localVariableParameters: [String: Any]? = nil
+
+        let localVariableUrlComponents = URLComponents(string: localVariableURLString)
+
+        let localVariableNillableHeaders: [String: Any?] = [
+            "Idempotency-Key": idempotencyKey?.encodeToJSON(),
+        ]
+
+        let localVariableHeaderParameters = APIHelper.rejectNilHeaders(localVariableNillableHeaders)
+
+        let localVariableRequestBuilder: RequestBuilder<AccountDeletionResponse>.Type = DailySketchAPIAPI.requestBuilderFactory.getBuilder()
+
+        return localVariableRequestBuilder.init(method: "DELETE", URLString: (localVariableUrlComponents?.string ?? localVariableURLString), parameters: localVariableParameters, headers: localVariableHeaderParameters, requiresAuthentication: true)
+    }
+
+    /**
      Current authenticated user
      
      - returns: CurrentUser
@@ -84,6 +124,44 @@ open class MeAPI {
         let localVariableHeaderParameters = APIHelper.rejectNilHeaders(localVariableNillableHeaders)
 
         let localVariableRequestBuilder: RequestBuilder<PreferencesSummary>.Type = DailySketchAPIAPI.requestBuilderFactory.getBuilder()
+
+        return localVariableRequestBuilder.init(method: "GET", URLString: (localVariableUrlComponents?.string ?? localVariableURLString), parameters: localVariableParameters, headers: localVariableHeaderParameters, requiresAuthentication: true)
+    }
+
+    /**
+     List users blocked by the current user
+     
+     - returns: BlockedUsersResponse
+     */
+    @available(macOS 10.15, iOS 13.0, tvOS 13.0, watchOS 6.0, *)
+    open class func listMyBlockedUsers() async throws -> BlockedUsersResponse {
+        return try await listMyBlockedUsersWithRequestBuilder().execute().body
+    }
+
+    /**
+     List users blocked by the current user
+     - GET /api/v1/me/blocked-users
+     - Returns users the authenticated user has blocked. Block relationships are private and are never exposed on public profiles. 
+     - Bearer Token:
+       - type: http
+       - name: bearerAuth
+     - responseHeaders: [X-Request-ID(UUID)]
+     - returns: RequestBuilder<BlockedUsersResponse> 
+     */
+    open class func listMyBlockedUsersWithRequestBuilder() -> RequestBuilder<BlockedUsersResponse> {
+        let localVariablePath = "/api/v1/me/blocked-users"
+        let localVariableURLString = DailySketchAPIAPI.basePath + localVariablePath
+        let localVariableParameters: [String: Any]? = nil
+
+        let localVariableUrlComponents = URLComponents(string: localVariableURLString)
+
+        let localVariableNillableHeaders: [String: Any?] = [
+            :
+        ]
+
+        let localVariableHeaderParameters = APIHelper.rejectNilHeaders(localVariableNillableHeaders)
+
+        let localVariableRequestBuilder: RequestBuilder<BlockedUsersResponse>.Type = DailySketchAPIAPI.requestBuilderFactory.getBuilder()
 
         return localVariableRequestBuilder.init(method: "GET", URLString: (localVariableUrlComponents?.string ?? localVariableURLString), parameters: localVariableParameters, headers: localVariableHeaderParameters, requiresAuthentication: true)
     }

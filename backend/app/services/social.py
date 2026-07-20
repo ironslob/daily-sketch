@@ -18,6 +18,7 @@ from app.models.reflection import Reflection, ReflectionStatus
 from app.models.submission import Submission, SubmissionStatus
 from app.models.user import User, UserStatus
 from app.repositories.activity_events import ActivityEventRepository
+from app.repositories.blocks import BlockRepository
 from app.repositories.idempotency import IdempotencyRepository
 from app.repositories.likes import LikeRepository
 from app.repositories.reflections import ReflectionRepository
@@ -55,13 +56,14 @@ class SocialService:
         self._submissions = SubmissionRepository(session)
         self._uploads = UploadRepository(session)
         self._users = UserRepository(session)
+        self._blocks = BlockRepository(session)
         self._idempotency = IdempotencyRepository(session)
         self._clock = clock
         self._settings = settings or get_settings()
         self._storage = storage
 
     async def like(self, *, user: User, submission_id: uuid.UUID) -> LikeState:
-        submission = await self._require_visible_submission(submission_id)
+        submission = await self._require_visible_submission(submission_id, viewer=user)
         now = self._clock.now()
         inserted = await self._likes.add(
             submission_id=submission.id,
@@ -84,7 +86,7 @@ class SocialService:
         return LikeState(liked=True, like_count=submission.like_count)
 
     async def unlike(self, *, user: User, submission_id: uuid.UUID) -> LikeState:
-        submission = await self._require_visible_submission(submission_id)
+        submission = await self._require_visible_submission(submission_id, viewer=user)
         deleted = await self._likes.delete(
             submission_id=submission.id,
             user_id=user.id,
@@ -105,7 +107,7 @@ class SocialService:
         limit: int = 20,
         viewer: User | None = None,
     ) -> ReflectionListResponse:
-        await self._require_visible_submission(submission_id)
+        await self._require_visible_submission(submission_id, viewer=viewer)
         cursor_created_at = None
         cursor_id = None
         if cursor:
@@ -117,6 +119,9 @@ class SocialService:
             cursor_created_at=cursor_created_at,
             cursor_id=cursor_id,
         )
+        if viewer is not None:
+            excluded = await self._blocks.either_direction_ids(viewer.id)
+            rows = [row for row in rows if row.user.id not in excluded]
         page_rows = rows[:limit]
         next_cursor: str | None = None
         if len(rows) > limit:
@@ -188,7 +193,7 @@ class SocialService:
                     existing.response_status,
                 )
 
-        submission = await self._require_visible_submission(submission_id)
+        submission = await self._require_visible_submission(submission_id, viewer=user)
         reflection = await self._reflections.create(
             submission_id=submission.id,
             user_id=user.id,
@@ -266,7 +271,12 @@ class SocialService:
             submission.reflection_count = max(0, submission.reflection_count - 1)
         await self._session.commit()
 
-    async def _require_visible_submission(self, submission_id: uuid.UUID) -> Submission:
+    async def _require_visible_submission(
+        self,
+        submission_id: uuid.UUID,
+        *,
+        viewer: User | None = None,
+    ) -> Submission:
         submission = await self._submissions.get_by_id(submission_id)
         if (
             submission is None
@@ -287,6 +297,15 @@ class SocialService:
                 UserStatus.incomplete,
                 UserStatus.active,
             }
+        ):
+            raise AppError(
+                code="submission_not_found",
+                message="The requested sketch could not be found.",
+                status_code=404,
+            )
+        if viewer is not None and await self._blocks.either_direction_exists(
+            user_a=viewer.id,
+            user_b=submission.user_id,
         ):
             raise AppError(
                 code="submission_not_found",

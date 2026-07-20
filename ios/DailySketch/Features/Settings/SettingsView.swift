@@ -36,6 +36,8 @@ struct SettingsView: View {
                 notificationsSection(model)
                 sketchPreferencesSection(model)
                 appearanceSection(model)
+                safetySection
+                deleteAccountSection
             }
             aboutSection
             if let error = model.errorMessage {
@@ -150,6 +152,30 @@ struct SettingsView: View {
             }
             .pickerStyle(.inline)
             .accessibilityLabel("Appearance")
+        }
+    }
+
+    private var safetySection: some View {
+        Section("Safety and privacy") {
+            Button("Blocked Users") {
+                dependencies.navigation.profilePath.append(.blockedUsers)
+            }
+            .accessibilityLabel("Blocked Users")
+            Text("Community Guidelines")
+                .foregroundStyle(AppColors.textSecondary)
+            Text("Privacy Policy")
+                .foregroundStyle(AppColors.textSecondary)
+            Text("Terms of Service")
+                .foregroundStyle(AppColors.textSecondary)
+        }
+    }
+
+    private var deleteAccountSection: some View {
+        Section {
+            Button("Delete Account", role: .destructive) {
+                dependencies.navigation.profilePath.append(.deleteAccount)
+            }
+            .accessibilityLabel("Delete Account")
         }
     }
 

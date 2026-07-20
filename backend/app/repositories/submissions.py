@@ -88,17 +88,19 @@ class SubmissionRepository:
         cursor_published_at: datetime | None = None,
         cursor_id: uuid.UUID | None = None,
         viewer_id: uuid.UUID | None = None,
+        excluded_author_ids: set[uuid.UUID] | None = None,
     ) -> list[FeedRow]:
         """Return up to ``limit`` published feed rows in reverse-chronological order.
 
         Caller should request ``limit + 1`` to detect a next page.
-        ``viewer_id`` is reserved for Phase 11 block filtering.
+        ``excluded_author_ids`` filters authors blocked by or blocking the viewer.
         """
         statement = self._base_feed_select()
 
-        # Phase 11 will filter authors/targets blocked by or blocking the viewer.
-        # The seam is ready; `user_blocks` does not exist yet.
-        _ = viewer_id
+        if excluded_author_ids:
+            statement = statement.where(Submission.user_id.notin_(excluded_author_ids))
+        else:
+            _ = viewer_id
 
         if cursor_published_at is not None and cursor_id is not None:
             statement = statement.where(
@@ -126,11 +128,13 @@ class SubmissionRepository:
         cursor_published_at: datetime | None = None,
         cursor_id: uuid.UUID | None = None,
         viewer_id: uuid.UUID | None = None,
+        excluded_author_ids: set[uuid.UUID] | None = None,
     ) -> list[FeedRow]:
         """Return published Submissions for one user in reverse-chronological order."""
         statement = self._base_feed_select().where(Submission.user_id == user_id)
 
-        # Phase 11 will filter blocked relationships.
+        if excluded_author_ids and user_id in excluded_author_ids:
+            return []
         _ = viewer_id
 
         if cursor_published_at is not None and cursor_id is not None:
@@ -222,6 +226,36 @@ class SubmissionRepository:
         submission.deleted_at = deleted_at
         await self._session.commit()
         await self._session.refresh(submission)
+        return submission
+
+    async def list_published_for_user_ids(self, user_id: uuid.UUID) -> list[Submission]:
+        result = await self._session.execute(
+            select(Submission).where(
+                Submission.user_id == user_id,
+                Submission.status == SubmissionStatus.published,
+                Submission.deleted_at.is_(None),
+            )
+        )
+        return list(result.scalars().all())
+
+    async def set_status(
+        self,
+        submission: Submission,
+        *,
+        status: SubmissionStatus,
+        deleted_at: datetime | None = None,
+        commit: bool = True,
+    ) -> Submission:
+        submission.status = status
+        if deleted_at is not None:
+            submission.deleted_at = deleted_at
+        elif status == SubmissionStatus.published:
+            submission.deleted_at = None
+        if commit:
+            await self._session.commit()
+            await self._session.refresh(submission)
+        else:
+            await self._session.flush()
         return submission
 
     async def save(self, submission: Submission) -> Submission:

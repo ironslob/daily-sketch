@@ -13,6 +13,49 @@ import AnyCodable
 open class UsersAPI {
 
     /**
+     Block a user
+     
+     - parameter userId: (path) UUID of the user to block. 
+     - returns: BlockState
+     */
+    @available(macOS 10.15, iOS 13.0, tvOS 13.0, watchOS 6.0, *)
+    open class func blockUser(userId: UUID) async throws -> BlockState {
+        return try await blockUserWithRequestBuilder(userId: userId).execute().body
+    }
+
+    /**
+     Block a user
+     - PUT /api/v1/users/{user_id}/block
+     - Idempotently blocks another user. The blocked user's Submissions are hidden from the blocker's feed and profile browsing, Reflections are hidden, and interaction (Like / Reflection) is rejected in both directions where reciprocal filtering applies. Self-block is rejected. Block relationships are private. 
+     - Bearer Token:
+       - type: http
+       - name: bearerAuth
+     - responseHeaders: [X-Request-ID(UUID)]
+     - parameter userId: (path) UUID of the user to block. 
+     - returns: RequestBuilder<BlockState> 
+     */
+    open class func blockUserWithRequestBuilder(userId: UUID) -> RequestBuilder<BlockState> {
+        var localVariablePath = "/api/v1/users/{user_id}/block"
+        let userIdPreEscape = "\(APIHelper.mapValueToPathItem(userId))"
+        let userIdPostEscape = userIdPreEscape.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? ""
+        localVariablePath = localVariablePath.replacingOccurrences(of: "{user_id}", with: userIdPostEscape, options: .literal, range: nil)
+        let localVariableURLString = DailySketchAPIAPI.basePath + localVariablePath
+        let localVariableParameters: [String: Any]? = nil
+
+        let localVariableUrlComponents = URLComponents(string: localVariableURLString)
+
+        let localVariableNillableHeaders: [String: Any?] = [
+            :
+        ]
+
+        let localVariableHeaderParameters = APIHelper.rejectNilHeaders(localVariableNillableHeaders)
+
+        let localVariableRequestBuilder: RequestBuilder<BlockState>.Type = DailySketchAPIAPI.requestBuilderFactory.getBuilder()
+
+        return localVariableRequestBuilder.init(method: "PUT", URLString: (localVariableUrlComponents?.string ?? localVariableURLString), parameters: localVariableParameters, headers: localVariableHeaderParameters, requiresAuthentication: true)
+    }
+
+    /**
      Public profile by username
      
      - parameter username: (path) Public username (case-insensitive lookup). 
@@ -26,7 +69,7 @@ open class UsersAPI {
     /**
      Public profile by username
      - GET /api/v1/users/{username}
-     - Returns a public-safe projection of an active user with a completed profile. Available to guests and authenticated users. When authenticated, `is_self` is true when the viewer is the profile owner. Excludes email, Descope subject, preferences, moderation internals, Drafts, and private session analytics. Incomplete, suspended, and deleted profiles return 404. 
+     - Returns a public-safe projection of an active user with a completed profile. Available to guests and authenticated users. When authenticated, `is_self` is true when the viewer is the profile owner. Excludes email, Descope subject, preferences, moderation internals, Drafts, and private session analytics. Incomplete, suspended, and deleted profiles return 404. When the authenticated viewer has a block relationship with the profile owner in either direction, the profile is unavailable (404). 
      - responseHeaders: [X-Request-ID(UUID)]
      - parameter username: (path) Public username (case-insensitive lookup). 
      - returns: RequestBuilder<PublicUser> 
@@ -98,5 +141,48 @@ open class UsersAPI {
         let localVariableRequestBuilder: RequestBuilder<RecentFeed>.Type = DailySketchAPIAPI.requestBuilderFactory.getBuilder()
 
         return localVariableRequestBuilder.init(method: "GET", URLString: (localVariableUrlComponents?.string ?? localVariableURLString), parameters: localVariableParameters, headers: localVariableHeaderParameters, requiresAuthentication: false)
+    }
+
+    /**
+     Unblock a user
+     
+     - parameter userId: (path) UUID of the user to unblock. 
+     - returns: BlockState
+     */
+    @available(macOS 10.15, iOS 13.0, tvOS 13.0, watchOS 6.0, *)
+    open class func unblockUser(userId: UUID) async throws -> BlockState {
+        return try await unblockUserWithRequestBuilder(userId: userId).execute().body
+    }
+
+    /**
+     Unblock a user
+     - DELETE /api/v1/users/{user_id}/block
+     - Idempotently removes a block. Unblock when no block exists is safe and returns `blocked: false`. 
+     - Bearer Token:
+       - type: http
+       - name: bearerAuth
+     - responseHeaders: [X-Request-ID(UUID)]
+     - parameter userId: (path) UUID of the user to unblock. 
+     - returns: RequestBuilder<BlockState> 
+     */
+    open class func unblockUserWithRequestBuilder(userId: UUID) -> RequestBuilder<BlockState> {
+        var localVariablePath = "/api/v1/users/{user_id}/block"
+        let userIdPreEscape = "\(APIHelper.mapValueToPathItem(userId))"
+        let userIdPostEscape = userIdPreEscape.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? ""
+        localVariablePath = localVariablePath.replacingOccurrences(of: "{user_id}", with: userIdPostEscape, options: .literal, range: nil)
+        let localVariableURLString = DailySketchAPIAPI.basePath + localVariablePath
+        let localVariableParameters: [String: Any]? = nil
+
+        let localVariableUrlComponents = URLComponents(string: localVariableURLString)
+
+        let localVariableNillableHeaders: [String: Any?] = [
+            :
+        ]
+
+        let localVariableHeaderParameters = APIHelper.rejectNilHeaders(localVariableNillableHeaders)
+
+        let localVariableRequestBuilder: RequestBuilder<BlockState>.Type = DailySketchAPIAPI.requestBuilderFactory.getBuilder()
+
+        return localVariableRequestBuilder.init(method: "DELETE", URLString: (localVariableUrlComponents?.string ?? localVariableURLString), parameters: localVariableParameters, headers: localVariableHeaderParameters, requiresAuthentication: true)
     }
 }

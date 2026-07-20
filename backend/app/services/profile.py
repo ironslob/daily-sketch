@@ -29,6 +29,7 @@ from app.schemas.me import (
     PublicUserResponse,
     UpdateMeRequest,
 )
+from app.services.blocks import BlockService
 from app.services.feed_items import build_feed_item
 from app.services.media_urls import resolve_avatar_url
 from app.services.preferences import PreferencesService
@@ -54,6 +55,12 @@ class ProfileService:
         self._clock = clock or SystemClock()
         self._storage = storage
         self._settings = settings or get_settings()
+        self._blocks = BlockService(
+            session,
+            self._clock,
+            settings=self._settings,
+            storage=storage,
+        )
 
     async def get_current_user_response(self, user: User) -> CurrentUserResponse:
         prefs = await self._preferences_service.get_or_create(user.id)
@@ -149,7 +156,7 @@ class ProfileService:
         *,
         viewer: User | None = None,
     ) -> PublicUserResponse:
-        user = await self._require_public_profile(username)
+        user = await self._require_public_profile(username, viewer=viewer)
         submission_count = await self._submissions.count_user_published(user.id)
         prompt_dates = await self._submissions.published_prompt_dates(user.id)
         current_streak = compute_current_streak(prompt_dates, today=self._clock.today())
@@ -176,18 +183,20 @@ class ProfileService:
         if self._storage is None:
             raise RuntimeError("Storage adapter is required for profile submissions")
 
-        user = await self._require_public_profile(username)
+        user = await self._require_public_profile(username, viewer=viewer)
         cursor_published_at = None
         cursor_id = None
         if cursor:
             cursor_published_at, cursor_id = decode_cursor(cursor)
 
+        excluded = await self._blocks.exclude_ids_for(viewer.id if viewer else None)
         rows = await self._submissions.list_user_published(
             user_id=user.id,
             limit=limit + 1,
             cursor_published_at=cursor_published_at,
             cursor_id=cursor_id,
             viewer_id=viewer.id if viewer is not None else None,
+            excluded_author_ids=excluded or None,
         )
         page_rows = rows[:limit]
         next_cursor: str | None = None
@@ -224,7 +233,12 @@ class ProfileService:
             )
         return RecentFeedResponse(items=items, next_cursor=next_cursor)
 
-    async def _require_public_profile(self, username: str) -> User:
+    async def _require_public_profile(
+        self,
+        username: str,
+        *,
+        viewer: User | None = None,
+    ) -> User:
         normalized = normalize_username(username)
         user = await self._users.get_by_username_normalized(normalized)
         if (
@@ -233,6 +247,15 @@ class ProfileService:
             or user.status != UserStatus.active
             or user.profile_completed_at is None
             or user.deleted_at is not None
+        ):
+            raise AppError(
+                code="user_not_found",
+                message="The requested profile could not be found.",
+                status_code=404,
+            )
+        if viewer is not None and await self._blocks.is_blocked_either_way(
+            viewer_id=viewer.id,
+            other_id=user.id,
         ):
             raise AppError(
                 code="user_not_found",
