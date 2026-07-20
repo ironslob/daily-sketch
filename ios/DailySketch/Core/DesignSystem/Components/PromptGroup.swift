@@ -14,7 +14,7 @@ struct PromptGroup: View {
                 gridLayout
             }
         }
-        .accessibilityElement(children: .combine)
+        .accessibilityElement(children: .contain)
         .accessibilityLabel(accessibilityLabel)
     }
 

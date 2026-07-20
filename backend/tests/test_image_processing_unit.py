@@ -36,6 +36,22 @@ def test_process_upload_image_accepts_valid_jpeg() -> None:
         assert max(thumb.size) <= 512
 
 
+def test_derivatives_strip_exif_while_original_bytes_unchanged() -> None:
+    buf = BytesIO()
+    image = Image.new("RGB", (80, 60), color=(10, 20, 30))
+    exif = image.getexif()
+    exif[271] = "DailySketchCamera"  # Make
+    image.save(buf, format="JPEG", exif=exif)
+    original = buf.getvalue()
+    assert b"DailySketchCamera" in original
+
+    processed = process_upload_image(data=original, declared_content_type="image/jpeg")
+    assert b"DailySketchCamera" not in processed.display_bytes
+    assert b"DailySketchCamera" not in processed.thumbnail_bytes
+    # Callers retain original bytes verbatim; processing only returns derivatives.
+    assert original == buf.getvalue()
+
+
 def test_process_upload_image_rejects_corrupt_bytes() -> None:
     with pytest.raises(AppError) as exc_info:
         process_upload_image(data=b"not-an-image", declared_content_type="image/jpeg")

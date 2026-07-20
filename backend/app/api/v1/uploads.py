@@ -52,6 +52,21 @@ async def get_upload(
     )
 
 
+@router.post("/uploads/{upload_id}/refresh-signed-upload", response_model=UploadResponse)
+async def refresh_signed_upload(
+    upload_id: UUID,
+    user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_db_session),
+    clock: Clock = Depends(get_clock),
+    storage: StorageAdapter = Depends(get_storage_adapter),
+    settings: Settings = Depends(get_settings),
+) -> UploadResponse:
+    return await UploadService(session, clock, storage, settings).refresh_signed_upload(
+        user=user,
+        upload_id=upload_id,
+    )
+
+
 @router.post("/uploads/{upload_id}/complete", response_model=UploadResponse)
 async def complete_upload(
     upload_id: UUID,

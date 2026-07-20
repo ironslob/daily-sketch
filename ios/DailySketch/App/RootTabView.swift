@@ -41,13 +41,8 @@ struct RootTabView: View {
         }
         .onChange(of: dependencies.auth.needsProfileCompletion) { _, needsCompletion in
             guard needsCompletion else { return }
-            presentProfileCompletion()
-        }
-    }
-
-    private func presentProfileCompletion() {
-        if !dependencies.navigation.profilePath.contains(.profileCompletion) {
-            dependencies.navigation.profilePath.append(.profileCompletion)
+            let preferHome = dependencies.navigation.resumePublicationAfterProfileCompletion
+            dependencies.navigation.presentProfileCompletion(preferHome: preferHome)
         }
     }
 

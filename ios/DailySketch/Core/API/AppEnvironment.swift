@@ -3,6 +3,15 @@ import Foundation
 enum DescopeConfig {
     /// Placeholder project ID used for local mock authentication.
     static let placeholderProjectID = "replace-me"
+
+    /// True when the configured project ID is unset or still a template placeholder.
+    static func isPlaceholderProjectID(_ projectID: String) -> Bool {
+        let trimmed = projectID.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmed.isEmpty { return true }
+        if trimmed == placeholderProjectID { return true }
+        if trimmed.hasPrefix("replace-me") { return true }
+        return false
+    }
 }
 
 struct AppEnvironment: Equatable, Sendable {

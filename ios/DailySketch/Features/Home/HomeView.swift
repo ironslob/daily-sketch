@@ -254,10 +254,14 @@ struct HomeView: View {
         }
         .onChange(of: model.sketchFlow.needsProfileCompletionPresentation) { _, needsPresentation in
             guard needsPresentation else { return }
-            if !dependencies.navigation.profilePath.contains(.profileCompletion) {
-                dependencies.navigation.profilePath.append(.profileCompletion)
-            }
+            dependencies.navigation.resumePublicationAfterProfileCompletion = true
+            dependencies.navigation.presentProfileCompletion(preferHome: true)
             model.sketchFlow.acknowledgeProfileCompletionPresentation()
+        }
+        .onChange(of: dependencies.navigation.publishResumeRequested) { _, requested in
+            guard requested else { return }
+            dependencies.navigation.publishResumeRequested = false
+            model.sketchFlow.resumePendingPublishIfNeeded()
         }
         .onChange(of: model.sketchFlow.lastPublishedSubmissionId) { _, _ in
             model.refreshPublishedToday()

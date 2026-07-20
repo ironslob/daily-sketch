@@ -93,6 +93,7 @@ jobs-dry-run:
 	cd $(BACKEND) && . .venv/bin/activate && python -m app.jobs.idempotency_cleanup --dry-run
 	cd $(BACKEND) && . .venv/bin/activate && python -m app.jobs.deleted_media_cleanup --dry-run
 	cd $(BACKEND) && . .venv/bin/activate && python -m app.jobs.missing_prompt_check --dry-run
+	cd $(BACKEND) && . .venv/bin/activate && python -m app.jobs.account_deletion --dry-run
 
 backup-postgres:
 	bash $(ROOT)/scripts/ops/backup-postgres.sh

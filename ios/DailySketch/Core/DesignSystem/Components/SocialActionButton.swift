@@ -38,11 +38,14 @@ struct SocialActionButton: View {
     var usesLabel: Bool = false
     let action: () -> Void
 
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
     var body: some View {
         Button(action: action) {
             HStack(spacing: AppSpacing.xxs) {
                 Image(systemName: isActive ? kind.activeSystemImage : kind.systemImage)
                     .font(.body)
+                    .scaleEffect(isActive && kind == .like && !reduceMotion ? 1.08 : 1.0)
                 if let count {
                     Text("\(count)")
                         .font(AppTypography.caption)
@@ -54,6 +57,7 @@ struct SocialActionButton: View {
             .foregroundStyle(isActive ? AppColors.primary : AppColors.textSecondary)
             .frame(minWidth: AppSpacing.minimumTouchTarget, minHeight: AppSpacing.minimumTouchTarget)
             .contentShape(Rectangle())
+            .animation(reduceMotion ? nil : .spring(response: 0.28, dampingFraction: 0.7), value: isActive)
         }
         .buttonStyle(.plain)
         .disabled(isDisabled)

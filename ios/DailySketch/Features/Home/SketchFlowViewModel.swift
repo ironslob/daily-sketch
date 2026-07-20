@@ -320,6 +320,10 @@ final class SketchFlowViewModel {
             needsProfileCompletionPresentation = true
             return
         }
+        resumePendingPublishIfNeeded()
+    }
+
+    func resumePendingPublishIfNeeded() {
         if reviewViewModel?.draft.pendingPublication == true {
             reviewViewModel?.retryPublish()
         }

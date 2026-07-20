@@ -59,6 +59,7 @@ class ReflectionRepository:
         limit: int,
         cursor_created_at: datetime | None = None,
         cursor_id: uuid.UUID | None = None,
+        exclude_user_ids: set[uuid.UUID] | None = None,
     ) -> list[ReflectionRow]:
         """Return up to ``limit`` published reflections oldest-to-newest."""
         statement = (
@@ -72,6 +73,8 @@ class ReflectionRepository:
                 User.deleted_at.is_(None),
             )
         )
+        if exclude_user_ids:
+            statement = statement.where(User.id.notin_(exclude_user_ids))
         if cursor_created_at is not None and cursor_id is not None:
             statement = statement.where(
                 or_(

@@ -302,11 +302,6 @@ final class ReviewSubmissionViewModel {
             throw PublicationAPIError.underlying("Publishing is not configured.")
         }
 
-        if draft.uploadId != nil, !draft.uploadCompleted {
-            draft.uploadId = nil
-            try draftStore.save(draft)
-        }
-
         if let sessionService, let sessionId = draft.serverSessionId {
             _ = try? await sessionService.postEvent(
                 accessToken: accessToken,
@@ -317,13 +312,27 @@ final class ReviewSubmissionViewModel {
         }
         analytics?.track(.uploadStarted)
 
-        let slot = try await uploadService.createUpload(
-            accessToken: accessToken,
-            contentType: "image/jpeg",
-            byteSize: imageData.count,
-            purpose: .submission,
-            idempotencyKey: "upload-\(draft.id.uuidString)"
-        )
+        var slot: UploadSlotModel
+        if let existingUploadId = draft.uploadId, !draft.uploadCompleted {
+            slot = try await uploadService.refreshSignedUpload(
+                accessToken: accessToken,
+                uploadId: existingUploadId
+            )
+        } else {
+            slot = try await uploadService.createUpload(
+                accessToken: accessToken,
+                contentType: "image/jpeg",
+                byteSize: imageData.count,
+                purpose: .submission,
+                idempotencyKey: "upload-\(draft.id.uuidString)"
+            )
+            if slot.isSignedUploadExpired() {
+                slot = try await uploadService.refreshSignedUpload(
+                    accessToken: accessToken,
+                    uploadId: slot.id
+                )
+            }
+        }
 
         if slot.isSignedUploadExpired() {
             throw PublicationAPIError.signedUploadExpired
@@ -350,10 +359,24 @@ final class ReviewSubmissionViewModel {
                 }
             }
         } catch PublicationAPIError.signedUploadExpired {
-            draft.uploadId = nil
-            draft.uploadCompleted = false
-            try draftStore.save(draft)
-            throw PublicationAPIError.signedUploadExpired
+            let refreshed = try await uploadService.refreshSignedUpload(
+                accessToken: accessToken,
+                uploadId: slot.id
+            )
+            guard let refreshedURL = refreshed.signedUploadURL,
+                  let refreshedMethod = refreshed.signedUploadMethod else {
+                throw PublicationAPIError.signedUploadExpired
+            }
+            try await directUploader.upload(
+                data: imageData,
+                to: refreshedURL,
+                method: refreshedMethod,
+                headers: refreshed.signedUploadHeaders
+            ) { [weak self] value in
+                Task { @MainActor in
+                    self?.uploadProgress = value
+                }
+            }
         }
 
         _ = try await uploadService.completeUpload(accessToken: accessToken, uploadId: slot.id)

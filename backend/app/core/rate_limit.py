@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import time
 from collections import defaultdict, deque
 from dataclasses import dataclass
@@ -70,6 +71,22 @@ def _client_key(scope: Scope) -> str:
     return "unknown"
 
 
+def _request_id_from_scope(scope: Scope) -> str:
+    headers: dict[str, str] = {
+        key.decode("latin-1").lower(): value.decode("latin-1")
+        for key, value in scope.get("headers", [])
+    }
+    request_id = headers.get("x-request-id", "").strip()
+    if request_id:
+        return request_id
+    state = scope.get("state")
+    if isinstance(state, dict):
+        scoped = state.get("request_id")
+        if isinstance(scoped, str) and scoped:
+            return scoped
+    return "00000000-0000-0000-0000-000000000000"
+
+
 def _rate_limit_rule(method: str, path: str, settings: Settings) -> RateLimitRule | None:
     if path.startswith("/internal/moderation"):
         return RateLimitRule("moderation", settings.rate_limit_moderation_max)
@@ -119,7 +136,16 @@ class RateLimitMiddleware:
             max_requests=rule.max_requests,
         )
         if not allowed:
-            body = b'{"error":{"code":"rate_limited","message":"Too many requests. Please try again later.","details":{},"request_id":"00000000-0000-0000-0000-000000000000"}}'
+            request_id = _request_id_from_scope(scope)
+            payload = {
+                "error": {
+                    "code": "rate_limited",
+                    "message": "Too many requests. Please try again later.",
+                    "details": {},
+                    "request_id": request_id,
+                }
+            }
+            body = json.dumps(payload, separators=(",", ":")).encode()
             await send(
                 {
                     "type": "http.response.start",
@@ -128,6 +154,7 @@ class RateLimitMiddleware:
                         (b"content-type", b"application/json"),
                         (b"content-length", str(len(body)).encode()),
                         (b"retry-after", str(retry_after).encode()),
+                        (b"x-request-id", request_id.encode()),
                     ],
                 }
             )

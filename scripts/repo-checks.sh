@@ -57,6 +57,7 @@ find . -type f \
   -not -path './node_modules/*' \
   -not -path './ios/DerivedData/*' \
   -not -path './ios/*.xcodeproj/*' \
+  -not -path '*/.terraform/*' \
   -print0 |
 while IFS= read -r -d '' file; do
   size="$(wc -c < "${file}" | tr -d ' ')"

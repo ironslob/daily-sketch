@@ -177,9 +177,12 @@ class Settings(BaseSettings):
         if self.app_env not in {"staging", "production"}:
             return self
 
-        if self.descope_project_id == _PLACEHOLDER_DESCOPE:
+        if (
+            self.descope_project_id == _PLACEHOLDER_DESCOPE
+            or "replace-me" in self.descope_project_id
+        ):
             raise ValueError("DESCOPE_PROJECT_ID must be configured for staging/production")
-        if self.descope_audience == _PLACEHOLDER_DESCOPE:
+        if self.descope_audience == _PLACEHOLDER_DESCOPE or "replace-me" in self.descope_audience:
             raise ValueError("DESCOPE_AUDIENCE must be configured for staging/production")
         if "replace-me" in self.descope_issuer:
             raise ValueError("DESCOPE_ISSUER must be configured for staging/production")

@@ -70,12 +70,20 @@ struct SettingsView: View {
                 if let user = dependencies.auth.currentUser {
                     LabeledContent("Display name", value: user.displayName)
                     LabeledContent("Username", value: user.username.map { "@\($0)" } ?? "Not set")
+                    LabeledContent(
+                        "Timezone",
+                        value: viewModel?.preferences.timezone ?? TimeZone.current.identifier
+                    )
                     if !user.profileCompleted {
                         Button("Complete Profile") {
                             dependencies.navigation.profilePath.append(.profileCompletion)
                         }
                         .accessibilityLabel("Complete Profile")
                     }
+                    Button("Edit Profile") {
+                        dependencies.navigation.profilePath.append(.editProfile)
+                    }
+                    .accessibilityLabel("Edit Profile")
                 }
                 Button("Sign Out", role: .destructive) {
                     Task {
@@ -203,8 +211,10 @@ struct SettingsView: View {
                 Link("Terms of Service", destination: url)
                     .accessibilityLabel("Terms of Service")
             }
-            Text("Community Guidelines")
-                .foregroundStyle(AppColors.textSecondary)
+            if let url = LegalLinks.communityGuidelines {
+                Link("Community Guidelines", destination: url)
+                    .accessibilityLabel("Community Guidelines")
+            }
         }
     }
 
@@ -219,8 +229,17 @@ struct SettingsView: View {
 
     private var aboutSection: some View {
         Section("About") {
-            LabeledContent("Version", value: "0.1.0")
-            Text("Timezone for reminders: \(TimeZone.current.identifier)")
+            LabeledContent(
+                "Version",
+                value: Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String
+                    ?? "0.1.0"
+            )
+            if let viewModel {
+                LabeledContent("Timezone", value: viewModel.preferences.timezone)
+            } else {
+                LabeledContent("Timezone", value: TimeZone.current.identifier)
+            }
+            Text("Reminders use your saved preference timezone when signed in.")
                 .font(AppTypography.caption)
                 .foregroundStyle(AppColors.textSecondary)
         }

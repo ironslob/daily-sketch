@@ -26,7 +26,7 @@ open class UploadsAPI {
     /**
      Complete and verify an Upload
      - POST /api/v1/uploads/{upload_id}/complete
-     - Verifies the object exists in private storage, validates the image, strips unnecessary EXIF metadata, generates display and thumbnail derivatives, and marks the Upload ready for Submission consumption. 
+     - Verifies the object exists in private storage, validates the image, retains the original bytes verbatim, generates EXIF-stripped display and thumbnail derivatives for public feeds, and marks the Upload ready for Submission consumption. 
      - Bearer Token:
        - type: http
        - name: bearerAuth
@@ -139,5 +139,48 @@ open class UploadsAPI {
         let localVariableRequestBuilder: RequestBuilder<Upload>.Type = DailySketchAPIAPI.requestBuilderFactory.getBuilder()
 
         return localVariableRequestBuilder.init(method: "GET", URLString: (localVariableUrlComponents?.string ?? localVariableURLString), parameters: localVariableParameters, headers: localVariableHeaderParameters, requiresAuthentication: true)
+    }
+
+    /**
+     Refresh a signed upload URL
+     
+     - parameter uploadId: (path) Upload UUID. 
+     - returns: Upload
+     */
+    @available(macOS 10.15, iOS 13.0, tvOS 13.0, watchOS 6.0, *)
+    open class func refreshSignedUpload(uploadId: UUID) async throws -> Upload {
+        return try await refreshSignedUploadWithRequestBuilder(uploadId: uploadId).execute().body
+    }
+
+    /**
+     Refresh a signed upload URL
+     - POST /api/v1/uploads/{upload_id}/refresh-signed-upload
+     - Issues a new short-lived signed upload URL for an owned pending Upload without creating a new Upload row. Use this when a previous signed URL expired before the client finished uploading bytes. 
+     - Bearer Token:
+       - type: http
+       - name: bearerAuth
+     - responseHeaders: [X-Request-ID(UUID)]
+     - parameter uploadId: (path) Upload UUID. 
+     - returns: RequestBuilder<Upload> 
+     */
+    open class func refreshSignedUploadWithRequestBuilder(uploadId: UUID) -> RequestBuilder<Upload> {
+        var localVariablePath = "/api/v1/uploads/{upload_id}/refresh-signed-upload"
+        let uploadIdPreEscape = "\(APIHelper.mapValueToPathItem(uploadId))"
+        let uploadIdPostEscape = uploadIdPreEscape.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? ""
+        localVariablePath = localVariablePath.replacingOccurrences(of: "{upload_id}", with: uploadIdPostEscape, options: .literal, range: nil)
+        let localVariableURLString = DailySketchAPIAPI.basePath + localVariablePath
+        let localVariableParameters: [String: Any]? = nil
+
+        let localVariableUrlComponents = URLComponents(string: localVariableURLString)
+
+        let localVariableNillableHeaders: [String: Any?] = [
+            :
+        ]
+
+        let localVariableHeaderParameters = APIHelper.rejectNilHeaders(localVariableNillableHeaders)
+
+        let localVariableRequestBuilder: RequestBuilder<Upload>.Type = DailySketchAPIAPI.requestBuilderFactory.getBuilder()
+
+        return localVariableRequestBuilder.init(method: "POST", URLString: (localVariableUrlComponents?.string ?? localVariableURLString), parameters: localVariableParameters, headers: localVariableHeaderParameters, requiresAuthentication: true)
     }
 }

@@ -3,6 +3,8 @@ import SwiftUI
 struct AuthenticationView: View {
     @Environment(AppDependencies.self) private var dependencies
     @State private var displayName = ""
+    @State private var descopeFlowError: String?
+    @State private var descopeFlowEpoch = 0
     var mode: Mode = .signUp
 
     enum Mode: Hashable {
@@ -25,7 +27,18 @@ struct AuthenticationView: View {
                 if dependencies.auth.usesMockAuthentication {
                     mockAuthContent
                 } else {
-                    descopePlaceholder
+                    descopeContent
+                }
+
+                if let descopeFlowError {
+                    ErrorStateView(
+                        title: "Couldn’t sign in",
+                        message: descopeFlowError,
+                        onRetry: {
+                            self.descopeFlowError = nil
+                            descopeFlowEpoch += 1
+                        }
+                    )
                 }
 
                 if case .failed(let message) = dependencies.auth.state {
@@ -33,7 +46,7 @@ struct AuthenticationView: View {
                         title: "Couldn’t sign in",
                         message: message,
                         onRetry: {
-                            Task { await retry() }
+                            Task { await retryMockAuth() }
                         }
                     )
                 }
@@ -77,27 +90,43 @@ struct AuthenticationView: View {
                 .multilineTextAlignment(.center)
 
             PrimaryButton(title: mode == .signUp ? "Create Free Account" : "Sign In") {
-                Task { await retry() }
+                Task { await retryMockAuth() }
             }
             .accessibilityLabel(mode == .signUp ? "Create Free Account" : "Sign In")
         }
     }
 
     @ViewBuilder
-    private var descopePlaceholder: some View {
+    private var descopeContent: some View {
         VStack(spacing: AppSpacing.md) {
-            Text("Descope project \(descopeProjectID) is configured. Present a hosted Descope Flow from this screen in a follow-up when flow URLs are available.")
+            Text(mode == .signUp
+                ? "Continue with Descope to create your account."
+                : "Continue with Descope to sign in.")
                 .font(AppTypography.body)
                 .foregroundStyle(AppColors.textSecondary)
                 .multilineTextAlignment(.center)
 
             if let descope = dependencies.descopeAuthService {
-                DescopeFlowHost(projectID: descopeProjectID) { response in
-                    let session = descope.complete(from: response)
-                    Task {
-                        await dependencies.auth.applyExternalSession(session)
+                DescopeFlowHost(
+                    projectID: descopeProjectID,
+                    mode: mode,
+                    flowEpoch: descopeFlowEpoch,
+                    onFinished: { response in
+                        let session = descope.complete(from: response)
+                        Task {
+                            await dependencies.auth.applyExternalSession(session)
+                            finishAuthenticatedNavigation()
+                        }
+                    },
+                    onCancelled: {
+                        descopeFlowError = "Sign-in was cancelled. You can try again when you’re ready."
+                    },
+                    onFailed: { message in
+                        descopeFlowError = message
                     }
-                }
+                )
+                .frame(minHeight: 420)
+                .id(descopeFlowEpoch)
             }
         }
     }
@@ -106,7 +135,8 @@ struct AuthenticationView: View {
         Bundle.main.object(forInfoDictionaryKey: "DESCOPE_PROJECT_ID") as? String ?? "replace-me"
     }
 
-    private func retry() async {
+    private func retryMockAuth() async {
+        guard dependencies.auth.usesMockAuthentication else { return }
         switch mode {
         case .signUp:
             await dependencies.auth.signUp(displayName: displayName)
@@ -114,12 +144,20 @@ struct AuthenticationView: View {
             await dependencies.auth.signIn(displayName: displayName)
         }
         if dependencies.auth.isAuthenticated {
-            dependencies.navigation.profilePath.removeAll {
-                $0 == .authentication(.signUp) || $0 == .authentication(.signIn)
-            }
-            if dependencies.auth.needsProfileCompletion {
-                dependencies.navigation.profilePath.append(.profileCompletion)
-            }
+            finishAuthenticatedNavigation()
+        }
+    }
+
+    private func finishAuthenticatedNavigation() {
+        dependencies.navigation.profilePath.removeAll {
+            $0 == .authentication(.signUp) || $0 == .authentication(.signIn)
+        }
+        dependencies.navigation.homePath.removeAll {
+            $0 == .authentication(.signUp) || $0 == .authentication(.signIn)
+        }
+        if dependencies.auth.needsProfileCompletion {
+            let preferHome = dependencies.navigation.resumePublicationAfterProfileCompletion
+            dependencies.navigation.presentProfileCompletion(preferHome: preferHome)
         }
     }
 }

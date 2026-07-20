@@ -151,6 +151,11 @@ protocol UploadServing: Sendable {
         idempotencyKey: String?
     ) async throws -> UploadSlotModel
 
+    func refreshSignedUpload(
+        accessToken: String,
+        uploadId: UUID
+    ) async throws -> UploadSlotModel
+
     func completeUpload(
         accessToken: String,
         uploadId: UUID
@@ -237,6 +242,19 @@ struct UploadRepository: UploadServing {
                 createUploadRequest: request,
                 idempotencyKey: idempotencyKey
             )
+            return mapUpload(upload)
+        } catch {
+            throw mapAPIError(error)
+        }
+    }
+
+    func refreshSignedUpload(
+        accessToken: String,
+        uploadId: UUID
+    ) async throws -> UploadSlotModel {
+        configureClient(accessToken: accessToken)
+        do {
+            let upload = try await UploadsAPI.refreshSignedUpload(uploadId: uploadId)
             return mapUpload(upload)
         } catch {
             throw mapAPIError(error)
@@ -428,10 +446,13 @@ private struct PublicationAPIErrorEnvelope: Decodable {
 
 final class RecordingUploadRepository: UploadServing, @unchecked Sendable {
     private(set) var createCallCount = 0
+    private(set) var refreshCallCount = 0
     private(set) var completeCallCount = 0
     var createError: Error?
+    var refreshError: Error?
     var completeError: Error?
     var nextSlot: UploadSlotModel?
+    var nextRefresh: UploadSlotModel?
     var nextReady: UploadSlotModel?
 
     func createUpload(
@@ -453,6 +474,22 @@ final class RecordingUploadRepository: UploadServing, @unchecked Sendable {
             signedUploadMethod: "PUT",
             signedUploadHeaders: ["Content-Type": contentType],
             maxBytes: max(byteSize, 1),
+            expiresAt: Date().addingTimeInterval(3600)
+        )
+    }
+
+    func refreshSignedUpload(accessToken: String, uploadId: UUID) async throws -> UploadSlotModel {
+        refreshCallCount += 1
+        if let refreshError { throw refreshError }
+        if let nextRefresh { return nextRefresh }
+        return UploadSlotModel(
+            id: uploadId,
+            status: "pending",
+            contentType: "image/jpeg",
+            signedUploadURL: URL(string: "https://example.test/upload-refreshed"),
+            signedUploadMethod: "PUT",
+            signedUploadHeaders: ["Content-Type": "image/jpeg"],
+            maxBytes: 1_048_576,
             expiresAt: Date().addingTimeInterval(3600)
         )
     }

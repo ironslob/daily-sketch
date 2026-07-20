@@ -11,7 +11,7 @@ struct PromptWordCard: View {
             .padding(AppSpacing.cardPadding)
             .background(AppColors.surfacePrimary)
             .clipShape(RoundedRectangle(cornerRadius: AppRadii.card, style: .continuous))
-            .accessibilityHidden(true)
+            .accessibilityLabel(word)
     }
 }
 

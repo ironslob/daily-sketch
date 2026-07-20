@@ -489,6 +489,49 @@ async def test_upload_retry_complete_when_ready(client: AsyncClient) -> None:
 
 @requires_postgres
 @pytest.mark.asyncio
+async def test_refresh_signed_upload_for_pending_slot(client: AsyncClient) -> None:
+    headers = _auth_headers(client)
+    await _complete_profile(client, headers)
+    jpeg = make_jpeg()
+    created = await client.post(
+        "/api/v1/uploads",
+        headers={**headers, "Idempotency-Key": "refresh-slot-1"},
+        json={
+            "purpose": "submission",
+            "content_type": "image/jpeg",
+            "byte_size": len(jpeg),
+        },
+    )
+    assert created.status_code == 201
+    body = created.json()
+    upload_id = body["id"]
+
+    refreshed = await client.post(
+        f"/api/v1/uploads/{upload_id}/refresh-signed-upload",
+        headers=headers,
+    )
+    assert refreshed.status_code == 200
+    refreshed_body = refreshed.json()
+    assert refreshed_body["id"] == upload_id
+    assert refreshed_body["status"] == "pending"
+    assert refreshed_body["signed_upload"]["url"]
+    assert refreshed_body["signed_upload"]["method"] == "PUT"
+    assert refreshed_body["expires_at"] >= body["expires_at"]
+
+    await _put_upload_bytes(client, headers, upload_id, jpeg)
+    completed = await client.post(f"/api/v1/uploads/{upload_id}/complete", headers=headers)
+    assert completed.status_code == 200
+    assert completed.json()["status"] == "ready"
+
+    ready_refresh = await client.post(
+        f"/api/v1/uploads/{upload_id}/refresh-signed-upload",
+        headers=headers,
+    )
+    assert ready_refresh.status_code == 422
+
+
+@requires_postgres
+@pytest.mark.asyncio
 async def test_multiple_submissions_for_same_prompt(client: AsyncClient) -> None:
     headers = _auth_headers(client)
     await _complete_profile(client, headers)
@@ -534,9 +577,15 @@ async def test_delete_hides_submission(client: AsyncClient) -> None:
     )
     assert created.status_code == 201
     submission_id = created.json()["id"]
+    body = created.json()
+    assert "/display" in body["image_url"] or "display" in body["image_url"]
+    assert "/thumbnail" in body["thumbnail_url"] or "thumbnail" in body["thumbnail_url"]
+    assert "/original" not in body["image_url"]
+    assert "/original" not in body["thumbnail_url"]
 
     fetched = await client.get(f"/api/v1/submissions/{submission_id}", headers=headers)
     assert fetched.status_code == 200
+    assert "/original" not in fetched.json()["image_url"]
 
     deleted = await client.delete(f"/api/v1/submissions/{submission_id}", headers=headers)
     assert deleted.status_code == 204

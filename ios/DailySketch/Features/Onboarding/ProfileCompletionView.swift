@@ -38,7 +38,7 @@ struct ProfileCompletionView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .accessibilityAddTraits(.isHeader)
 
-                Text("Pick a unique username and display name. You can add a photo later.")
+                Text("Pick a unique username and display name. You can add a photo later from Edit Profile.")
                     .font(AppTypography.body)
                     .foregroundStyle(AppColors.textSecondary)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -118,24 +118,28 @@ struct ProfileCompletionView: View {
                 .font(.system(size: 64))
                 .foregroundStyle(AppColors.primary)
                 .accessibilityHidden(true)
-            Text("Avatar optional — coming soon")
+            Text("Photo optional — add one anytime in Edit Profile after saving.")
                 .font(AppTypography.caption)
                 .foregroundStyle(AppColors.textTertiary)
+                .multilineTextAlignment(.center)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, AppSpacing.md)
         .background(AppColors.surfaceSecondary)
         .clipShape(RoundedRectangle(cornerRadius: AppRadii.card, style: .continuous))
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("Avatar optional, coming soon")
+        .accessibilityLabel("Photo optional. Add one anytime in Edit Profile after saving.")
     }
 
     private func save(_ model: ProfileCompletionViewModel) async {
         let success = await model.save()
         if success {
-            dependencies.navigation.profilePath.removeAll { route in
-                if case .profileCompletion = route { return true }
-                return false
+            let shouldResumePublish = dependencies.navigation.resumePublicationAfterProfileCompletion
+            dependencies.navigation.dismissProfileCompletion()
+            if shouldResumePublish {
+                dependencies.navigation.resumePublicationAfterProfileCompletion = false
+                dependencies.navigation.selectedTab = .home
+                dependencies.navigation.publishResumeRequested = true
             }
         }
     }

@@ -33,8 +33,14 @@ def require_moderation_operator(
     settings: Settings = Depends(get_settings),
     x_moderation_token: Annotated[str | None, Header(alias="X-Moderation-Token")] = None,
 ) -> str:
+    import secrets
+
     expected = settings.moderation_operator_token
-    if not expected or not x_moderation_token or x_moderation_token != expected:
+    if (
+        not expected
+        or not x_moderation_token
+        or not secrets.compare_digest(x_moderation_token, expected)
+    ):
         raise AppError(
             code="moderation_forbidden",
             message="Moderation access is not permitted.",

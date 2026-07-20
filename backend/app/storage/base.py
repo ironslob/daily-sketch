@@ -82,47 +82,6 @@ class StorageAdapter(Protocol):
         ...
 
 
-class NotConfiguredStorageAdapter:
-    """Stub adapter used until Phase 7 wiring. Raises if called."""
-
-    async def create_signed_upload(
-        self,
-        *,
-        key: str,
-        content_type: str,
-        max_bytes: int,
-        expires_at: datetime,
-    ) -> SignedUpload:
-        raise NotImplementedError("Storage adapter is not configured.")
-
-    async def verify_object(self, *, key: str) -> ObjectMetadata:
-        raise NotImplementedError("Storage adapter is not configured.")
-
-    async def read_url(self, *, key: str, expires_at: datetime) -> str:
-        raise NotImplementedError("Storage adapter is not configured.")
-
-    async def delete_object(self, *, key: str) -> None:
-        raise NotImplementedError("Storage adapter is not configured.")
-
-    async def download_object(self, *, key: str) -> bytes:
-        raise NotImplementedError("Storage adapter is not configured.")
-
-    async def put_object(
-        self,
-        *,
-        key: str,
-        body: bytes,
-        content_type: str,
-    ) -> ObjectMetadata:
-        raise NotImplementedError("Storage adapter is not configured.")
-
-    async def ping(self) -> bool:
-        raise NotImplementedError("Storage adapter is not configured.")
-
-    def derivative_key(self, *, original_key: str, kind: str) -> str:
-        raise NotImplementedError("Storage adapter is not configured.")
-
-
 def get_storage_adapter() -> StorageAdapter:
     """FastAPI dependency returning the configured S3-compatible adapter."""
     from app.storage.minio import MinioStorageAdapter

@@ -3,10 +3,22 @@
 from __future__ import annotations
 
 import asyncio
+import json
 
 from starlette.types import ASGIApp, Receive, Scope, Send
 
 from app.core.settings import Settings
+
+
+def _request_id_from_scope(scope: Scope) -> str:
+    headers: dict[str, str] = {
+        key.decode("latin-1").lower(): value.decode("latin-1")
+        for key, value in scope.get("headers", [])
+    }
+    request_id = headers.get("x-request-id", "").strip()
+    if request_id:
+        return request_id
+    return "00000000-0000-0000-0000-000000000000"
 
 
 class RequestSizeLimitMiddleware:
@@ -32,7 +44,16 @@ class RequestSizeLimitMiddleware:
             except ValueError:
                 length = 0
             if length > self._max_bytes:
-                body = b'{"error":{"code":"payload_too_large","message":"Request body is too large.","details":{},"request_id":"00000000-0000-0000-0000-000000000000"}}'
+                request_id = _request_id_from_scope(scope)
+                payload = {
+                    "error": {
+                        "code": "payload_too_large",
+                        "message": "Request body is too large.",
+                        "details": {},
+                        "request_id": request_id,
+                    }
+                }
+                body = json.dumps(payload, separators=(",", ":")).encode()
                 await send(
                     {
                         "type": "http.response.start",
@@ -40,6 +61,7 @@ class RequestSizeLimitMiddleware:
                         "headers": [
                             (b"content-type", b"application/json"),
                             (b"content-length", str(len(body)).encode()),
+                            (b"x-request-id", request_id.encode()),
                         ],
                     }
                 )
@@ -64,7 +86,16 @@ class RequestTimeoutMiddleware:
         try:
             await asyncio.wait_for(self.app(scope, receive, send), timeout=self._timeout)
         except TimeoutError:
-            body = b'{"error":{"code":"request_timeout","message":"The request timed out.","details":{},"request_id":"00000000-0000-0000-0000-000000000000"}}'
+            request_id = _request_id_from_scope(scope)
+            payload = {
+                "error": {
+                    "code": "request_timeout",
+                    "message": "The request timed out.",
+                    "details": {},
+                    "request_id": request_id,
+                }
+            }
+            body = json.dumps(payload, separators=(",", ":")).encode()
             await send(
                 {
                     "type": "http.response.start",
@@ -72,6 +103,7 @@ class RequestTimeoutMiddleware:
                     "headers": [
                         (b"content-type", b"application/json"),
                         (b"content-length", str(len(body)).encode()),
+                        (b"x-request-id", request_id.encode()),
                     ],
                 }
             )

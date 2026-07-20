@@ -147,7 +147,7 @@ final class AppDependencies {
         let cameraAuthorizer = SystemCameraAuthorizer()
         let projectID = environment.descopeProjectID
 
-        if projectID == DescopeConfig.placeholderProjectID || projectID.isEmpty {
+        if DescopeConfig.isPlaceholderProjectID(projectID) {
             let authService = MockAuthService()
             let auth = AuthSessionStore(
                 authService: authService,

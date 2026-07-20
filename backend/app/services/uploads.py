@@ -116,6 +116,36 @@ class UploadService:
         upload = await self._require_owned_upload(user=user, upload_id=upload_id)
         return UploadResponse.from_orm(upload)
 
+    async def refresh_signed_upload(self, *, user: User, upload_id: uuid.UUID) -> UploadResponse:
+        upload = await self._require_owned_upload(user=user, upload_id=upload_id)
+        if upload.status != UploadStatus.pending:
+            raise AppError(
+                code="upload_not_ready",
+                message="Only pending uploads can refresh a signed upload URL.",
+                status_code=422,
+                details={"status": upload.status.value},
+            )
+
+        now = self._clock.now()
+        expires_at = now + timedelta(seconds=self._settings.signed_upload_expiry_seconds)
+        signed = await self._storage.create_signed_upload(
+            key=upload.storage_key,
+            content_type=upload.content_type,
+            max_bytes=self._settings.max_upload_bytes,
+            expires_at=expires_at,
+        )
+        upload.expires_at = expires_at
+        await self._uploads.save(upload)
+        signed_response = SignedUploadResponse(
+            url=signed.url,
+            method=signed.method,
+            headers=signed.headers,
+            expires_at=signed.expires_at,
+            max_bytes=signed.max_bytes,
+            content_type=signed.content_type,
+        )
+        return UploadResponse.from_orm(upload, signed_upload=signed_response)
+
     async def complete(self, *, user: User, upload_id: uuid.UUID) -> UploadResponse:
         upload = await self._require_owned_upload(user=user, upload_id=upload_id)
         if upload.status == UploadStatus.ready:

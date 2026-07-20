@@ -368,6 +368,18 @@ async def test_owner_delete_removes_from_feed_and_detail(client: AsyncClient) ->
     assert detail.status_code == 404
 
 
+@requires_postgres
+@pytest.mark.asyncio
+async def test_feed_accepts_invalid_bearer_as_anonymous(client: AsyncClient) -> None:
+    await _publish_submission(client, username="anon_feed", caption="Public")
+    response = await client.get(
+        "/api/v1/feed/recent",
+        headers={"Authorization": "Bearer totally-invalid-token"},
+    )
+    assert response.status_code == 200
+    assert len(response.json()["items"]) >= 1
+
+
 def test_caption_preview_truncates() -> None:
     assert caption_preview(None) is None
     assert caption_preview("  ") is None

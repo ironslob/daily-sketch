@@ -68,11 +68,18 @@ async def get_optional_current_user(
     session: AsyncSession = Depends(get_db_session),
     settings: Settings = Depends(get_settings),
 ) -> User | None:
-    """Return the authenticated user when a bearer token is present, else None."""
+    """Return the authenticated user when a bearer token is present, else None.
+
+    Invalid, expired, or unverifiable tokens fall back to anonymous so public
+    reads (feed, profiles) stay available during auth outages.
+    """
     if credentials is None or credentials.scheme.lower() != "bearer" or not credentials.credentials:
         return None
     verifier: TokenVerifier = getattr(
         request.app.state, "token_verifier", None
     ) or get_token_verifier(settings)
-    verified = verifier.verify(credentials.credentials)
-    return await UserService(session).resolve_or_provision(verified)
+    try:
+        verified = verifier.verify(credentials.credentials)
+        return await UserService(session).resolve_or_provision(verified)
+    except AppError:
+        return None

@@ -32,6 +32,16 @@ def test_staging_settings_fail_without_descope(monkeypatch: pytest.MonkeyPatch) 
         Settings(_env_file=None)  # type: ignore[call-arg]
 
 
+def test_staging_settings_fail_on_replace_me_prefix(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("APP_ENV", "staging")
+    monkeypatch.setenv("DESCOPE_PROJECT_ID", "replace-me-staging")
+    monkeypatch.setenv("DESCOPE_AUDIENCE", "replace-me-staging")
+    monkeypatch.setenv("DESCOPE_ISSUER", "https://api.descope.com/v1/apps/replace-me-staging")
+    monkeypatch.setenv("MODERATION_OPERATOR_TOKEN", "staging-token")
+    with pytest.raises(ValidationError):
+        Settings(_env_file=None)  # type: ignore[call-arg]
+
+
 def test_staging_settings_accept_valid_config(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("APP_ENV", "staging")
     monkeypatch.setenv("DESCOPE_PROJECT_ID", "P123")

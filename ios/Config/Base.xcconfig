@@ -10,6 +10,7 @@ CURRENT_PROJECT_VERSION = 1
 SUPPORT_URL = https:/$()/example.com/daily-sketch/support
 PRIVACY_URL = https:/$()/example.com/daily-sketch/privacy
 TERMS_URL = https:/$()/example.com/daily-sketch/terms
+COMMUNITY_GUIDELINES_URL = https:/$()/example.com/daily-sketch/community-guidelines
 SENTRY_DSN =
 ANALYTICS_ENVIRONMENT = local
 LOGGING_LEVEL = debug

@@ -30,7 +30,7 @@ FastAPI application for Daily Sketch. See the repository root README for local s
 - **Errors:** Domain `AppError` and framework exceptions render the shared OpenAPI `Error` envelope.
 - **Logging:** Structured JSON logs include request ID, route, method, status, latency, environment, and release version.
 - **Clock:** Injectable `Clock` / `SystemClock` (UTC) for Prompt Date and later domain timing.
-- **Storage:** `StorageAdapter` protocol with a Phase 1 `NotConfiguredStorageAdapter` stub. Signed uploads arrive in Phase 7.
+- **Storage:** `StorageAdapter` protocol implemented by `MinioStorageAdapter` (S3-compatible). Direct signed uploads, derivative generation, and signed reads are live.
 - **Routing:** Health probes at `/health/*`. Versioned feature mount at `/api/v1`.
 
 ## Useful commands

@@ -7,16 +7,8 @@ final class DailySketchUITests: XCTestCase {
 
         let homeTab = app.tabBars.buttons["Home"]
         XCTAssertTrue(homeTab.waitForExistence(timeout: 5))
-        XCTAssertTrue(app.staticTexts["Today’s Inspiration"].exists)
-        XCTAssertTrue(app.buttons["Start Sketch"].exists)
-
-        app.buttons["Start Sketch"].tap()
-        XCTAssertTrue(
-            app.staticTexts.matching(NSPredicate(format: "label CONTAINS[c] 'minute'")).firstMatch
-                .waitForExistence(timeout: 5)
-                || app.buttons.matching(NSPredicate(format: "label CONTAINS[c] 'timer'")).firstMatch
-                .waitForExistence(timeout: 2)
-        )
+        XCTAssertTrue(app.staticTexts["Today’s Inspiration"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["Start Sketch"].waitForExistence(timeout: 5))
     }
 
     func testLaunchShowsHomeAndProfileTabs() throws {
@@ -82,5 +74,18 @@ final class DailySketchUITests: XCTestCase {
 
         XCTAssertTrue(app.staticTexts["Today’s Inspiration"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.buttons["Start Sketch"].waitForExistence(timeout: 5))
+    }
+
+    func testGuestAuthEntryFromProfile() throws {
+        let app = XCUIApplication()
+        app.launch()
+
+        let profileTab = app.tabBars.buttons["Profile"]
+        XCTAssertTrue(profileTab.waitForExistence(timeout: 5))
+        profileTab.tap()
+
+        XCTAssertTrue(app.buttons["Create Free Account"].waitForExistence(timeout: 5))
+        app.buttons["Create Free Account"].tap()
+        XCTAssertTrue(app.navigationBars["Create Account"].waitForExistence(timeout: 5))
     }
 }

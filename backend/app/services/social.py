@@ -113,15 +113,17 @@ class SocialService:
         if cursor:
             cursor_created_at, cursor_id = decode_reflection_cursor(cursor)
 
+        excluded: set[uuid.UUID] = set()
+        if viewer is not None:
+            excluded = await self._blocks.either_direction_ids(viewer.id)
+
         rows = await self._reflections.list_for_submission(
             submission_id=submission_id,
             limit=limit + 1,
             cursor_created_at=cursor_created_at,
             cursor_id=cursor_id,
+            exclude_user_ids=excluded or None,
         )
-        if viewer is not None:
-            excluded = await self._blocks.either_direction_ids(viewer.id)
-            rows = [row for row in rows if row.user.id not in excluded]
         page_rows = rows[:limit]
         next_cursor: str | None = None
         if len(rows) > limit:

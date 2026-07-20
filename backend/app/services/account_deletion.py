@@ -96,9 +96,11 @@ class AccountDeletionService:
             )
         return response, 202
 
-    async def finalize_pending(self) -> int:
+    async def finalize_pending(self, *, dry_run: bool = False) -> int:
         """Finalize all pending-deletion accounts. Returns count finalized."""
         pending = await self._users.list_pending_deletion()
+        if dry_run:
+            return len(pending)
         finalized = 0
         for user in pending:
             await self._finalize_user(user)
@@ -174,6 +176,15 @@ class AccountDeletionService:
                         await self._storage.delete_object(key=key)
                     except Exception:
                         logger.exception("Failed to delete media key during account finalize")
+                if upload.deleted_at is None:
+                    upload.deleted_at = self._clock.now()
+            if submission.status != SubmissionStatus.deleted:
+                await self._submissions.set_status(
+                    submission,
+                    status=SubmissionStatus.deleted,
+                    deleted_at=self._clock.now(),
+                    commit=False,
+                )
 
         if user.avatar_upload_id is not None and self._storage is not None:
             avatar = await self._uploads.get_by_id(user.avatar_upload_id)
@@ -190,6 +201,8 @@ class AccountDeletionService:
                         await self._storage.delete_object(key=key)
                     except Exception:
                         logger.exception("Failed to delete avatar key during account finalize")
+                if avatar.deleted_at is None:
+                    avatar.deleted_at = self._clock.now()
 
         # Descope identity coordination seam — no-op without management credentials.
         self._coordinate_descope_deletion(user)

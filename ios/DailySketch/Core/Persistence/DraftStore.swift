@@ -130,6 +130,10 @@ struct DraftStore: DraftStoring {
     private func writeAll(_ drafts: [LocalDraft]) throws {
         let data = try encoder.encode(drafts)
         try data.write(to: fileURL, options: [.atomic])
+        try? FileManager.default.setAttributes(
+            [.protectionKey: FileProtectionType.complete],
+            ofItemAtPath: fileURL.path
+        )
     }
 }
 

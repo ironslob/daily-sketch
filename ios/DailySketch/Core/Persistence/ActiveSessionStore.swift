@@ -69,6 +69,10 @@ struct ActiveSessionStore: ActiveSessionStoring {
     func save(_ snapshot: ActiveSessionSnapshot) throws {
         let data = try encoder.encode(snapshot)
         try data.write(to: fileURL, options: [.atomic])
+        try? FileManager.default.setAttributes(
+            [.protectionKey: FileProtectionType.complete],
+            ofItemAtPath: fileURL.path
+        )
     }
 
     func clear() throws {

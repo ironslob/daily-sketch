@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 struct ProfileView: View {
     @Environment(AppDependencies.self) private var dependencies
@@ -331,6 +332,22 @@ struct ProfileView: View {
                     .font(AppTypography.body)
                     .foregroundStyle(AppColors.textSecondary)
                     .multilineTextAlignment(.center)
+
+                if let draft = try? dependencies.draftStore.mostRecentRecoverable(),
+                   let data = try? dependencies.draftImageStore.readData(fileName: draft.imageFileName),
+                   let image = UIImage(data: data) {
+                    DraftCardView(
+                        draft: draft,
+                        thumbnail: image,
+                        onContinue: {
+                            dependencies.navigation.selectedTab = .home
+                        },
+                        onDiscard: {
+                            try? dependencies.draftStore.delete(id: draft.id)
+                            try? dependencies.draftImageStore.delete(fileName: draft.imageFileName)
+                        }
+                    )
+                }
 
                 PrimaryButton(title: "Create Free Account") {
                     dependencies.navigation.profilePath.append(.authentication(.signUp))

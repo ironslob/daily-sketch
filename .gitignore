@@ -66,3 +66,10 @@ logs/
 tmp/
 temp/
 .cache/
+
+# Terraform
+**/.terraform/
+*.tfstate
+*.tfstate.*
+crash.log
+crash.*.log

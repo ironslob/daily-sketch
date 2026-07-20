@@ -1,0 +1,23 @@
+aws_region              = "eu-west-1"
+vpc_cidr                = "10.20.0.0/16"
+media_bucket_name       = "dailysketch-staging-media-ACCOUNT_ID"  # pragma: allowlist secret
+api_domain_name         = "api-staging.example.com"
+api_acm_certificate_arn = "arn:aws:acm:eu-west-1:ACCOUNT_ID:certificate/xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"  # pragma: allowlist secret
+cdn_domain_name         = "media-staging.example.com"
+cdn_acm_certificate_arn = "arn:aws:acm:us-east-1:ACCOUNT_ID:certificate/xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"  # pragma: allowlist secret
+
+backend_image           = "ACCOUNT_ID.dkr.ecr.eu-west-1.amazonaws.com/dailysketch-backend:staging"
+backend_desired_count   = 1
+db_instance_class       = "db.t4g.micro"
+release_version         = "0.1.0-staging"
+commit_sha              = "local"
+build_timestamp         = "local"
+descope_project_id      = "Pxxxxxxxxxxxxxxxxxxxxxx"
+descope_issuer          = "https://api.descope.com/v1/apps/Pxxxxxxxxxxxxxxxxxxxxxx"
+descope_audience        = "staging-audience"
+
+# Sensitive values — copy to terraform.tfvars locally; never commit.
+# moderation_operator_token = "..."
+# sentry_dsn                = "..."
+# alert_webhook_url         = "..."
+# alarm_sns_topic_arn       = "arn:aws:sns:eu-west-1:ACCOUNT_ID:ops-alerts"

@@ -2,24 +2,12 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>ANALYTICS_ENVIRONMENT</key>
+	<string>$(ANALYTICS_ENVIRONMENT)</string>
 	<key>API_BASE_URL</key>
 	<string>$(API_BASE_URL)</string>
 	<key>APP_ENVIRONMENT</key>
 	<string>$(APP_ENVIRONMENT)</string>
-	<key>DESCOPE_PROJECT_ID</key>
-	<string>$(DESCOPE_PROJECT_ID)</string>
-	<key>SUPPORT_URL</key>
-	<string>$(SUPPORT_URL)</string>
-	<key>PRIVACY_URL</key>
-	<string>$(PRIVACY_URL)</string>
-	<key>TERMS_URL</key>
-	<string>$(TERMS_URL)</string>
-	<key>SENTRY_DSN</key>
-	<string>$(SENTRY_DSN)</string>
-	<key>SHOW_ENVIRONMENT_BADGE</key>
-	<string>$(SHOW_ENVIRONMENT_BADGE)</string>
-	<key>ANALYTICS_ENVIRONMENT</key>
-	<string>$(ANALYTICS_ENVIRONMENT)</string>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleExecutable</key>
@@ -36,9 +24,23 @@
 	<string>1.0</string>
 	<key>CFBundleVersion</key>
 	<string>1</string>
+	<key>COMMUNITY_GUIDELINES_URL</key>
+	<string>$(COMMUNITY_GUIDELINES_URL)</string>
+	<key>DESCOPE_PROJECT_ID</key>
+	<string>$(DESCOPE_PROJECT_ID)</string>
 	<key>NSCameraUsageDescription</key>
 	<string>Daily Sketch uses the camera so you can photograph your drawing and share it with the community.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Daily Sketch accesses your photo library so you can choose an existing sketch photo to review and share.</string>
+	<key>PRIVACY_URL</key>
+	<string>$(PRIVACY_URL)</string>
+	<key>SENTRY_DSN</key>
+	<string>$(SENTRY_DSN)</string>
+	<key>SHOW_ENVIRONMENT_BADGE</key>
+	<string>$(SHOW_ENVIRONMENT_BADGE)</string>
+	<key>SUPPORT_URL</key>
+	<string>$(SUPPORT_URL)</string>
+	<key>TERMS_URL</key>
+	<string>$(TERMS_URL)</string>
 </dict>
 </plist>

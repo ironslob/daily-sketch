@@ -1,0 +1,3 @@
+aws_region        = "eu-west-1"
+state_bucket_name = "dailysketch-terraform-state-ACCOUNT_ID"
+lock_table_name   = "dailysketch-terraform-locks"

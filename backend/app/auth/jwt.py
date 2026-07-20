@@ -86,7 +86,9 @@ _verifier: TokenVerifier | None = None
 def get_token_verifier(settings: Settings) -> TokenVerifier:
     global _verifier
     if _verifier is None:
-        if settings.descope_project_id == "replace-me":
+        if settings.descope_project_id == "replace-me" or settings.descope_project_id.startswith(
+            "replace-me"
+        ):
             from app.auth.local_dev import LocalDevTokenVerifier
 
             _verifier = LocalDevTokenVerifier()
