@@ -15,6 +15,7 @@
 		0DE9F84B1B76578938EC6ED3 /* SettingsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 563BC9C98672AAA664ABDCA8 /* SettingsViewModel.swift */; };
 		1478FA77426B822DE65607C0 /* PromptWordCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2BDBF06E200EAEC778EC5F7 /* PromptWordCard.swift */; };
 		153C74FC1DF62F9A3B07C8AE /* ErrorStateView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D5F48E55158CFB78938E4926 /* ErrorStateView.swift */; };
+		15A3B4C5D6E7F8091A2B3C4D /* PromptCardStack.swift in Sources */ = {isa = PBXBuildFile; fileRef = 04A1B2C3D4E5F60718293A4B /* PromptCardStack.swift */; };
 		1882D888053E43A2F2055E4C /* PromptChip.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42A444EB0248FBBA33AE9D69 /* PromptChip.swift */; };
 		188C1884CF8A926A0E622774 /* ActiveSessionStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCF7BA8C9096A21C05B9CDEB /* ActiveSessionStore.swift */; };
 		1A8FB199852A30191951DA6B /* TimerSelectionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B368012A8555DD5B5379A2B1 /* TimerSelectionView.swift */; };
@@ -137,6 +138,7 @@
 
 /* Begin PBXFileReference section */
 		0076F26B858561CED585B1E9 /* ProfileViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileViewModel.swift; sourceTree = "<group>"; };
+		04A1B2C3D4E5F60718293A4B /* PromptCardStack.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PromptCardStack.swift; sourceTree = "<group>"; };
 		0783D24FF7A4D05E878D04CE /* DraftImageStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DraftImageStore.swift; sourceTree = "<group>"; };
 		098FB3FDF22081F24FEAEFDC /* SaveYourCreativityView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SaveYourCreativityView.swift; sourceTree = "<group>"; };
 		0AB93708E72E897F937AE9C0 /* Phase12Tests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Phase12Tests.swift; sourceTree = "<group>"; };
@@ -627,6 +629,7 @@
 				0DBE52EA2BA1DC7EDC671267 /* PrimaryButton.swift */,
 				42A444EB0248FBBA33AE9D69 /* PromptChip.swift */,
 				1B25BE9CA92C4BACCA3C8A8B /* PromptGroup.swift */,
+				04A1B2C3D4E5F60718293A4B /* PromptCardStack.swift */,
 				F2BDBF06E200EAEC778EC5F7 /* PromptWordCard.swift */,
 				3C78BEA1BCD71675D4834B1D /* ReflectionRow.swift */,
 				DF6F8FC74C78D965155A4568 /* SecondaryButton.swift */,
@@ -812,6 +815,7 @@
 				81347D8129C3FD0528CE1144 /* ProfileViewModel.swift in Sources */,
 				1882D888053E43A2F2055E4C /* PromptChip.swift in Sources */,
 				8D731F72282684F5AF97F86C /* PromptGroup.swift in Sources */,
+				15A3B4C5D6E7F8091A2B3C4D /* PromptCardStack.swift in Sources */,
 				3C2A28143275E493AA506B04 /* PromptModels.swift in Sources */,
 				EA8E27E7AC2AA12650168DE6 /* PromptRepository.swift in Sources */,
 				1478FA77426B822DE65607C0 /* PromptWordCard.swift in Sources */,

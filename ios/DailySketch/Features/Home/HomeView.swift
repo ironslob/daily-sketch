@@ -242,7 +242,7 @@ struct HomeView: View {
                     .font(AppTypography.display)
                     .foregroundStyle(AppColors.textPrimary)
 
-                Text("Use all three words as inspiration for today’s sketch.")
+                Text("Tap a prompt to start your daily practice.")
                     .font(AppTypography.bodyLarge)
                     .foregroundStyle(AppColors.textSecondary)
             }
@@ -409,17 +409,11 @@ struct HomeView: View {
     private func promptSection(_ model: HomeViewModel) -> some View {
         switch model.promptState {
         case .loading:
-            VStack(alignment: .leading, spacing: AppSpacing.contentGap) {
-                LoadingSkeleton(height: 168)
-                HStack(spacing: AppSpacing.contentGap) {
-                    LoadingSkeleton(height: 168)
-                    LoadingSkeleton(height: 168)
-                }
-            }
-            .accessibilityLabel("Loading today’s prompt")
+            LoadingSkeleton(height: PromptCardFanGeometry.stackHeight)
+                .accessibilityLabel("Loading today’s prompt")
 
         case .loaded(let prompt):
-            PromptGroup(words: prompt.words, accessibilityLabel: prompt.accessibilityLabel)
+            PromptCardStack(words: prompt.words, accessibilityLabel: prompt.accessibilityLabel)
 
         case .missing:
             ErrorStateView(

@@ -8,7 +8,11 @@ struct PromptWordCard: View {
         case compact
         /// Full-width card when stacking for accessibility sizes.
         case stacked
+        /// Portrait playing-card used in the homepage fan stack.
+        case stack
     }
+
+    static let stackCardWidth: CGFloat = 200
 
     let word: String
     var style: Style = .hero
@@ -30,7 +34,8 @@ struct PromptWordCard: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
         .padding(cardPadding)
-        .frame(maxWidth: .infinity, alignment: .topLeading)
+        .frame(maxWidth: style == .stack ? nil : .infinity, alignment: .topLeading)
+        .frame(width: style == .stack ? Self.stackCardWidth : nil)
         .aspectRatio(aspectRatio, contentMode: .fit)
         .background(AppColors.surfaceElevated)
         .clipShape(RoundedRectangle(cornerRadius: AppRadii.card, style: .continuous))
@@ -39,7 +44,7 @@ struct PromptWordCard: View {
 
     private var wordFont: Font {
         switch style {
-        case .hero:
+        case .hero, .stack:
             return AppTypography.title3
         case .compact, .stacked:
             return AppTypography.headline
@@ -48,7 +53,7 @@ struct PromptWordCard: View {
 
     private var iconSize: CGFloat {
         switch style {
-        case .hero: 28
+        case .hero, .stack: 28
         case .compact, .stacked: 24
         }
     }
@@ -56,6 +61,7 @@ struct PromptWordCard: View {
     private var cardPadding: CGFloat {
         switch style {
         case .hero: AppSpacing.cardPadding + 4
+        case .stack: AppSpacing.cardPadding + 4
         case .compact, .stacked: AppSpacing.cardPadding
         }
     }
@@ -65,6 +71,7 @@ struct PromptWordCard: View {
         case .hero: 2
         case .compact: 1
         case .stacked: 2.4
+        case .stack: 1 / 1.15
         }
     }
 }
@@ -113,6 +120,12 @@ enum PromptWordSymbol {
     }
     .padding()
     .background(AppColors.background)
+}
+
+#Preview("Stack") {
+    PromptWordCard(word: "Coffee", style: .stack)
+        .padding()
+        .background(AppColors.background)
 }
 
 #Preview("Dark") {

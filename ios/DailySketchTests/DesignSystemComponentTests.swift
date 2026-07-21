@@ -29,6 +29,10 @@ final class DesignSystemComponentTests: XCTestCase {
             words: ["Chocolate", "Coffee", "Banana"],
             accessibilityLabel: "Today’s prompt: Chocolate, Coffee, Banana."
         )
+        let promptCardStack = PromptCardStack(
+            words: ["Chocolate", "Coffee", "Banana"],
+            accessibilityLabel: "Today’s prompt: Chocolate, Coffee, Banana."
+        )
         let skeleton = LoadingSkeleton(height: 72)
         let avatar = AvatarView(displayName: "Matt", username: "sketchy_matt")
         let chip = PromptChip(word: "Coffee")
@@ -43,6 +47,7 @@ final class DesignSystemComponentTests: XCTestCase {
         XCTAssertNotNil(empty.body)
         XCTAssertNotNil(error.body)
         XCTAssertNotNil(promptGroup.body)
+        XCTAssertNotNil(promptCardStack.body)
         XCTAssertNotNil(skeleton.body)
         XCTAssertNotNil(avatar.body)
         XCTAssertNotNil(chip.body)
@@ -58,5 +63,34 @@ final class DesignSystemComponentTests: XCTestCase {
         XCTAssertNotNil(AppTypography.timer)
         XCTAssertEqual(AppShadows.radius, 20)
         XCTAssertEqual(AppShadows.yOffset, 8)
+    }
+
+    func testPromptCardFanGeometryRestingSpreadsSideCards() {
+        let left = PromptCardFanGeometry.transform(index: 0, phase: .resting)
+        let center = PromptCardFanGeometry.transform(index: 1, phase: .resting)
+        let right = PromptCardFanGeometry.transform(index: 2, phase: .resting)
+
+        XCTAssertLessThan(left.rotation, 0)
+        XCTAssertEqual(center.rotation, 0)
+        XCTAssertGreaterThan(right.rotation, 0)
+        XCTAssertLessThan(left.xOffset, 0)
+        XCTAssertEqual(center.xOffset, 0)
+        XCTAssertGreaterThan(right.xOffset, 0)
+        XCTAssertEqual(center.zIndex, 3)
+    }
+
+    func testPromptCardFanGeometryFannedOutSpreadsFurtherThanResting() {
+        let restingLeft = PromptCardFanGeometry.transform(index: 0, phase: .resting)
+        let fannedLeft = PromptCardFanGeometry.transform(index: 0, phase: .fannedOut)
+
+        XCTAssertLessThan(fannedLeft.rotation, restingLeft.rotation)
+        XCTAssertLessThan(fannedLeft.xOffset, restingLeft.xOffset)
+    }
+
+    func testPromptCardFanGeometryStackedCardsOverlap() {
+        let stacked = PromptCardFanGeometry.transform(index: 1, phase: .stacked)
+
+        XCTAssertEqual(stacked.rotation, 0)
+        XCTAssertEqual(stacked.xOffset, 0)
     }
 }
