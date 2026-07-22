@@ -1,5 +1,5 @@
-# Canonical copy for deploys is at the repo root: /railway.toml
-# Railway only auto-discovers railway.toml at the service root (default `/`).
+# Railway config-as-code (must live at repo root so Railway discovers it).
+# Keep in sync with infra/railway/railway.toml when changing deploy settings.
 [build]
 builder = "DOCKERFILE"
 dockerfilePath = "backend/Dockerfile"

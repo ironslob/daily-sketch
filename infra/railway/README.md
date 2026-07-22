@@ -11,7 +11,7 @@ Railway hosts a **shared remote test** backend for Daily Creative. It is not pro
 ## Service setup
 
 1. Create a new Railway project and connect this repository.
-2. Set the **root directory** to the repository root (monorepo). Config lives in `infra/railway/` — copy or symlink `railway.toml` to the repo root, **or** point Railway’s config path to `infra/railway/railway.toml` in the dashboard.
+2. Leave the service **root directory** at `/` (monorepo root). Deploy config is at the repo-root [`railway.toml`](../../railway.toml) (Railway discovers it automatically). A copy also lives in this folder for docs; keep them in sync. If you prefer config only under `infra/railway/`, set **Config as Code** path in the dashboard to `/infra/railway/railway.toml`.
 3. Add the **PostgreSQL** plugin. Railway injects `DATABASE_URL`; convert for SQLAlchemy async if needed:
 
    ```
