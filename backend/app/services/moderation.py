@@ -9,15 +9,16 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.clock import Clock
 from app.core.errors import AppError
+from app.models.creative_publication import PublicationStatus
+from app.models.enums import CreativeType
 from app.models.moderation_action import ModerationActionType
 from app.models.reflection import ReflectionStatus
 from app.models.report import ReportStatus, ReportTargetType
-from app.models.creative_publication import PublicationStatus
 from app.models.user import UserStatus
 from app.repositories.moderation_actions import ModerationActionRepository
+from app.repositories.publications import PublicationRepository
 from app.repositories.reflections import ReflectionRepository
 from app.repositories.reports import ReportRepository
-from app.repositories.publications import PublicationRepository
 from app.repositories.users import UserRepository
 
 
@@ -61,12 +62,19 @@ class ModerationService:
                     message="The requested target could not be found.",
                     status_code=404,
                 )
+            caption: str | None = None
+            if submission.creative_type == CreativeType.sketch:
+                sketch = await self._publications.get_sketch_submission(submission.id)
+                caption = sketch.caption if sketch is not None else None
+            elif submission.creative_type == CreativeType.story:
+                story = await self._publications.get_story_submission(submission.id)
+                caption = story.caption if story is not None else None
             return {
                 "target_type": "submission",
                 "id": str(submission.id),
                 "user_id": str(submission.user_id),
                 "status": submission.status.value,
-                "caption": submission.caption,
+                "caption": caption,
                 "published_at": submission.published_at.isoformat(),
                 "deleted_at": (
                     submission.deleted_at.isoformat() if submission.deleted_at else None

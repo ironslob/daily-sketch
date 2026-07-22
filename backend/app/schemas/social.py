@@ -7,7 +7,7 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from app.schemas.feed import FeedUserSummary
+from app.schemas.feed_shared import FeedUserSummary
 
 
 class LikeState(BaseModel):

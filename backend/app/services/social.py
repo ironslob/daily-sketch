@@ -25,7 +25,7 @@ from app.repositories.reflections import ReflectionRepository
 from app.repositories.publications import PublicationRepository
 from app.repositories.uploads import UploadRepository
 from app.repositories.users import UserRepository
-from app.schemas.feed import FeedUserSummary
+from app.schemas.feed_shared import FeedUserSummary
 from app.schemas.social import (
     CreateReflectionRequest,
     LikeState,

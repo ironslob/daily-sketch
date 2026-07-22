@@ -7,6 +7,7 @@ import json
 import uuid
 from abc import ABC, abstractmethod
 from datetime import timedelta
+from enum import Enum
 from typing import Any, Generic, TypeVar
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -25,7 +26,7 @@ EventRequestT = TypeVar("EventRequestT")
 ResponseT = TypeVar("ResponseT")
 SessionT = TypeVar("SessionT")
 EventTypeT = TypeVar("EventTypeT")
-StatusT = TypeVar("StatusT")
+StatusT = TypeVar("StatusT", bound=Enum)
 
 
 class BaseCreativeSessionService(
@@ -187,7 +188,7 @@ class BaseCreativeSessionService(
 
     async def _maybe_expire(self, creative_session: SessionT) -> SessionT:
         if self._status_value(creative_session) in {
-            self._status_value(s) for s in self.terminal_statuses
+            status.value for status in self.terminal_statuses
         }:
             return creative_session
         expiry_seconds = self._settings.creative_session_expiry_seconds

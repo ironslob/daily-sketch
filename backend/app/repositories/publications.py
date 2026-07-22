@@ -5,6 +5,7 @@ from __future__ import annotations
 import uuid
 from dataclasses import dataclass
 from datetime import date, datetime
+from typing import Any
 
 from sqlalchemy import Select, and_, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -277,7 +278,7 @@ class PublicationRepository:
         result = await self._session.execute(stmt)
         return list(result.scalars().all())
 
-    async def _map_feed_rows(self, statement: Select) -> list[FeedRow]:
+    async def _map_feed_rows(self, statement: Select[Any]) -> list[FeedRow]:
         result = await self._session.execute(statement)
         rows: list[FeedRow] = []
         for (
@@ -306,7 +307,7 @@ class PublicationRepository:
 
     def _base_feed_select(
         self,
-    ) -> Select:
+    ) -> Select[Any]:
         return (
             select(
                 CreativePublication,

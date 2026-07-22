@@ -7,7 +7,8 @@ from datetime import datetime
 from app.models.enums import TimerMode
 from app.models.user import User
 from app.repositories.publications import FeedRow
-from app.schemas.feed import FeedItem, FeedPromptSummary, FeedUserSummary
+from app.schemas.feed import FeedItem
+from app.schemas.feed_shared import FeedPromptSummary, FeedUserSummary
 from app.schemas.me import TimerModeSchema
 from app.schemas.submissions import CreativeTypeSchema
 from app.services.media_urls import signed_display_url, signed_thumbnail_url
