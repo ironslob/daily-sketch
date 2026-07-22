@@ -48,18 +48,13 @@ enum ReminderTimeParser {
     }
 }
 
-struct SystemReminderScheduler: ReminderScheduling {
-    private let center: UNUserNotificationCenter
-
-    init(center: UNUserNotificationCenter = .current()) {
-        self.center = center
-    }
-
-    func authorizationStatus() async -> ReminderPermissionStatus {
-        // Map to a Sendable status inside the callback so non-Sendable
-        // UNNotificationSettings never crosses isolation boundaries (Swift 6).
+/// Bridges `UNUserNotificationCenter` outside MainActor isolation.
+/// The center APIs are nonisolated / thread-safe; calling them from a MainActor type
+/// with a stored center trips Swift 6 complete concurrency checking on Xcode 16.4.
+enum NotificationCenterBridge {
+    static func authorizationStatus() async -> ReminderPermissionStatus {
         await withCheckedContinuation { continuation in
-            center.getNotificationSettings { settings in
+            UNUserNotificationCenter.current().getNotificationSettings { settings in
                 let status: ReminderPermissionStatus
                 switch settings.authorizationStatus {
                 case .notDetermined: status = .notDetermined
@@ -74,12 +69,41 @@ struct SystemReminderScheduler: ReminderScheduling {
         }
     }
 
-    func requestAuthorization() async -> Bool {
-        do {
-            return try await center.requestAuthorization(options: [.alert, .sound, .badge])
-        } catch {
-            return false
+    static func requestAuthorization() async -> Bool {
+        await withCheckedContinuation { continuation in
+            UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { granted, _ in
+                continuation.resume(returning: granted)
+            }
         }
+    }
+
+    static func add(_ request: UNNotificationRequest) async throws {
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+            UNUserNotificationCenter.current().add(request) { error in
+                if let error {
+                    continuation.resume(throwing: error)
+                } else {
+                    continuation.resume()
+                }
+            }
+        }
+    }
+
+    static func cancelDailyReminder() {
+        let identifier = ReminderNotificationIdentifiers.dailyReminder
+        let center = UNUserNotificationCenter.current()
+        center.removePendingNotificationRequests(withIdentifiers: [identifier])
+        center.removeDeliveredNotifications(withIdentifiers: [identifier])
+    }
+}
+
+struct SystemReminderScheduler: ReminderScheduling {
+    func authorizationStatus() async -> ReminderPermissionStatus {
+        await NotificationCenterBridge.authorizationStatus()
+    }
+
+    func requestAuthorization() async -> Bool {
+        await NotificationCenterBridge.requestAuthorization()
     }
 
     func scheduleDailyReminder(at timeLocal: String, timezone: TimeZone) async throws {
@@ -102,13 +126,11 @@ struct SystemReminderScheduler: ReminderScheduling {
             content: content,
             trigger: trigger
         )
-        try await center.add(request)
+        try await NotificationCenterBridge.add(request)
     }
 
     func cancelDailyReminder() async {
-        let identifier = ReminderNotificationIdentifiers.dailyReminder
-        center.removePendingNotificationRequests(withIdentifiers: [identifier])
-        center.removeDeliveredNotifications(withIdentifiers: [identifier])
+        NotificationCenterBridge.cancelDailyReminder()
     }
 }
 
