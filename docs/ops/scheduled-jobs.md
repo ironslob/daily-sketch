@@ -10,7 +10,7 @@ Provider cron examples (UTC):
 | Story session cleanup | `35 * * * *` | `python -m app.jobs.story_session_cleanup` |
 | Idempotency cleanup | `45 * * * *` | `python -m app.jobs.idempotency_cleanup` |
 | Deleted media cleanup | `0 3 * * *` | `python -m app.jobs.deleted_media_cleanup` |
-| Missing prompt check | `0 12 * * *` | `python -m app.jobs.missing_prompt_check` |
+| Missing prompt check | `0 12 * * *` | `python -m app.jobs.missing_prompt_check` (ensures today + tomorrow) |
 
 Dry-run locally:
 

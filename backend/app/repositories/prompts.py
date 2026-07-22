@@ -5,10 +5,19 @@ from __future__ import annotations
 import uuid
 from datetime import date, datetime
 
-from sqlalchemy import select
+from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.daily_prompt import DailyPrompt, PromptStatus
+
+# Namespace for pg_advisory_xact_lock(classid, id) so Prompt Date keys
+# do not collide with other advisory locks in this database.
+_PROMPT_DATE_LOCK_NAMESPACE = 872_014
+
+
+def prompt_date_lock_key(prompt_date: date) -> int:
+    """Stable int4 key for a Prompt Date (YYYYMMDD)."""
+    return prompt_date.year * 10_000 + prompt_date.month * 100 + prompt_date.day
 
 
 class PromptRepository:
@@ -42,6 +51,17 @@ class PromptRepository:
             )
         )
         return result.scalar_one_or_none()
+
+    async def acquire_prompt_date_lock(self, prompt_date: date) -> None:
+        """Take a transaction-scoped exclusive lock for this Prompt Date.
+
+        Used when the ``daily_prompts`` row may not exist yet, so a row-level
+        ``FOR UPDATE`` is not possible. Released on commit/rollback.
+        """
+        await self._session.execute(
+            text("SELECT pg_advisory_xact_lock(:ns, :key)"),
+            {"ns": _PROMPT_DATE_LOCK_NAMESPACE, "key": prompt_date_lock_key(prompt_date)},
+        )
 
     async def upsert_published(
         self,

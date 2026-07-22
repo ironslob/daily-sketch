@@ -32,7 +32,7 @@ Condensed from `spec/infrastructure.md` §40.
 ## Missing Daily Prompt
 
 **Checks:** `make job-missing-prompt-check`; prompt seed coverage.
-**Mitigation:** publish tomorrow's prompt; run seed/generate ops.
+**Mitigation:** the job and `GET /api/v1/prompts/today` both call `ensure_published` (deterministic create). Re-run the job; if a draft/withdrawn row blocks the date, publish or remove it; `make seed` for bulk future coverage.
 
 ## Migration failure
 

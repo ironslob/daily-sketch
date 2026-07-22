@@ -5,9 +5,10 @@ FastAPI application for Daily Sketch. See the repository root README for local s
 ## Phase 4 — Daily Prompt and empty feed
 
 - **Endpoints:** `GET /api/v1/prompts/today`, `GET /api/v1/prompts/{prompt_id}`, `GET /api/v1/feed/recent` (all unauthenticated).
-- **Service rules:** Only `published` prompts are returned. Missing today/id → `404 prompt_not_found`. Feed returns `{ "items": [], "next_cursor": null }` until Submissions exist.
+- **Service rules:** Only `published` prompts are returned. `GET /prompts/today` ensures a published row for the UTC Prompt Date (deterministic on-demand create under a transaction-scoped advisory lock). Existing draft/withdrawn rows are not overwritten (`404 prompt_not_found`). Missing id → `404 prompt_not_found`. Feed returns `{ "items": [], "next_cursor": null }` until Submissions exist.
 - **Clock:** `PromptService` uses injectable `Clock.today()` (UTC calendar date).
-- **Seed:** `make seed` / `python -m app.seeds.prompts` upserts deterministic three-word prompts (validated non-empty, unique within a prompt). `python -m app.seeds.safety` seeds sample block relationships and open reports for local testing.
+- **Jobs:** `missing_prompt_check` ensures published prompts for today and tomorrow via the same helper (dry-run checks only).
+- **Seed:** `make seed` / `python -m app.seeds.prompts` upserts deterministic three-word prompts for bulk future coverage (same generator as on-demand). `python -m app.seeds.safety` seeds sample block relationships and open reports for local testing.
 
 ## Phase 11 — Safety
 

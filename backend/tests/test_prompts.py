@@ -22,7 +22,8 @@ from app.main import create_app
 from app.models.daily_prompt import DailyPrompt, PromptStatus
 from app.models.user import User  # noqa: F401
 from app.models.user_preferences import UserPreferences  # noqa: F401
-from app.repositories.prompts import PromptRepository
+from app.repositories.prompts import PromptRepository, prompt_date_lock_key
+from app.seeds.prompts import generate_prompt_words
 
 DATABASE_URL = os.environ.get(
     "DATABASE_URL",
@@ -191,15 +192,31 @@ async def test_today_returns_published_prompt_preserving_order(
 
 @requires_postgres
 @pytest.mark.asyncio
-async def test_today_missing_prompt_returns_recoverable_404(
+async def test_today_creates_published_prompt_when_missing(
     client: AsyncClient,
     openapi_spec: dict[str, Any],
 ) -> None:
+    expected = generate_prompt_words(date(2026, 7, 18))
     response = await client.get("/api/v1/prompts/today")
-    assert response.status_code == 404
+    assert response.status_code == 200
     body = response.json()
-    assert body["error"]["code"] == "prompt_not_found"
-    assert_matches_schema(body, "Error", openapi_spec)
+    assert body["prompt_date"] == "2026-07-18"
+    assert body["status"] == "published"
+    assert body["word_1"] == expected[0]
+    assert body["word_2"] == expected[1]
+    assert body["word_3"] == expected[2]
+    assert body["published_at"] is not None
+    assert_matches_schema(body, "DailyPrompt", openapi_spec)
+
+
+@requires_postgres
+@pytest.mark.asyncio
+async def test_today_on_demand_is_idempotent(client: AsyncClient) -> None:
+    first = await client.get("/api/v1/prompts/today")
+    second = await client.get("/api/v1/prompts/today")
+    assert first.status_code == 200
+    assert second.status_code == 200
+    assert first.json() == second.json()
 
 
 @requires_postgres
@@ -275,3 +292,10 @@ async def test_recent_feed_rejects_invalid_cursor(client: AsyncClient) -> None:
     )
     assert response.status_code == 422
     assert response.json()["error"]["code"] == "invalid_cursor"
+
+
+def test_prompt_date_lock_key_is_stable_yyyymmdd() -> None:
+    assert prompt_date_lock_key(date(2026, 7, 18)) == 20260718
+    assert prompt_date_lock_key(date(2026, 1, 5)) == 20260105
+    assert prompt_date_lock_key(date(2026, 7, 18)) == prompt_date_lock_key(date(2026, 7, 18))
+    assert prompt_date_lock_key(date(2026, 7, 18)) != prompt_date_lock_key(date(2026, 7, 19))
