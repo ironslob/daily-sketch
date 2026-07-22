@@ -1,15 +1,15 @@
-# Railway config-as-code (must live at repo root so Railway discovers it).
-# Keep in sync with infra/railway/railway.toml when changing deploy settings.
+# Railway config-as-code — single source of truth for the API service.
 #
-# Dashboard: set service Root Directory to /backend (that directory is the
-# Docker build context). Config path stays absolute from the repo root.
+# Dashboard:
+# - Root Directory: /backend (Docker build context)
+# - Config as Code: /railway.toml (absolute from repo; does not follow Root Directory)
 [build]
 builder = "DOCKERFILE"
 dockerfilePath = "Dockerfile"
 watchPatterns = ["backend/**"]
 
 [deploy]
-startCommand = "uvicorn app.main:app --host 0.0.0.0 --port $PORT"
+startCommand = "sh -c 'uvicorn app.main:app --host 0.0.0.0 --port $PORT'"
 healthcheckPath = "/health/live"
 healthcheckTimeout = 120
 restartPolicyType = "ON_FAILURE"

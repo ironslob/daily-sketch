@@ -13,7 +13,7 @@ Railway hosts a **shared remote test** backend for Daily Creative. It is not pro
 1. Create a new Railway project and connect this repository.
 2. In service **Settings**:
    - **Root Directory:** `/backend` — Railway uses this as the Docker build context (required so `COPY app`, `alembic.ini`, etc. resolve).
-   - **Config as Code:** `/railway.toml` (repo root; auto-discovered) **or** `/infra/railway/railway.toml`. This path is absolute from the repo and does **not** follow Root Directory.
+   - **Config as Code:** `/railway.toml` — absolute from the repo root; does **not** follow Root Directory. Clear any path pointing at `infra/railway/`.
 3. Add the **PostgreSQL** plugin. Railway injects `DATABASE_URL`; convert for SQLAlchemy async if needed:
 
    ```
@@ -22,14 +22,14 @@ Railway hosts a **shared remote test** backend for Daily Creative. It is not pro
 
    Use the plugin’s credentials — do not commit them.
 
-4. Configure **Dockerfile deploy** via `railway.toml`:
+4. Configure **Dockerfile deploy** via the repo-root [`railway.toml`](../../railway.toml):
 
    - `dockerfilePath = "Dockerfile"` (relative to Root Directory `/backend`)
    - Build context is Root Directory (`/backend`), same as local `docker compose` (`context: ./backend`)
 
 5. **Release command** (migrations): `alembic upgrade head` — runs on each deploy before traffic shifts (see `releaseCommand` in `railway.toml`).
 
-6. **Start command**: `uvicorn` on `$PORT` (Railway sets `PORT` automatically).
+6. **Start command**: `sh -c 'uvicorn … --port $PORT'` (Railway sets `PORT`; command must run under a shell so it expands).
 
 ## Environment variables
 
