@@ -1,5 +1,6 @@
 import XCTest
 
+@MainActor
 final class DailySketchUITests: XCTestCase {
     func testLaunchShowsHomeFeedAndTimerEntry() throws {
         let app = XCUIApplication()
