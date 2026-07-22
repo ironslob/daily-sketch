@@ -1,6 +1,9 @@
 .PHONY: help up down logs backend-install backend-run backend-test backend-lint backend-typecheck \
 	backend-shell db-migrate db-reset seed api-validate api-generate-ios api-check-generated test clean-local \
-	repo-checks docker-build ios-generate ios-build ios-test account-deletion-finalize \
+	repo-checks docker-build ios-generate ios-build ios-test \
+	ios-build-local ios-build-development ios-build-staging ios-build-production \
+	ios-test-local ios-test-development ios-test-staging ios-test-production \
+	account-deletion-finalize \
 	staging-up staging-smoke backup-postgres restore-postgres perf-profile \
 	job-upload-cleanup job-sketch-session-cleanup job-story-session-cleanup job-idempotency-cleanup \
 	job-deleted-media-cleanup job-missing-prompt-check jobs-dry-run
@@ -32,6 +35,7 @@ help:
 	@echo "  backup-postgres / restore-postgres BACKUP=path"
 	@echo "  api-validate / api-generate-ios / api-check-generated"
 	@echo "  repo-checks / docker-build / ios-generate / ios-build / ios-test / test"
+	@echo "  ios-build|test with IOS_ENV=local|development|staging|production (IOS_APP=DailySketch|DailyStory)"
 
 up:
 	$(COMPOSE) up --build postgres minio minio-init backend
@@ -147,21 +151,57 @@ docker-build:
 ios-generate:
 	cd $(ROOT)/ios && xcodegen generate
 
+# iOS environment: local | development | staging | production
+IOS_ENV ?= local
+# iOS app target: DailySketch | DailyStory
+IOS_APP ?= DailySketch
+IOS_DESTINATION ?= platform=iOS Simulator,name=iPhone 16,OS=18.1
+
+ios_config_local := Debug-Local
+ios_config_development := Debug-Development
+ios_config_staging := Release-Staging
+ios_config_production := Release-Production
+IOS_CONFIGURATION = $(ios_config_$(IOS_ENV))
+
+ifeq ($(IOS_ENV),local)
+  IOS_SCHEME_SUFFIX :=
+else ifeq ($(IOS_ENV),development)
+  IOS_SCHEME_SUFFIX := Development
+else ifeq ($(IOS_ENV),staging)
+  IOS_SCHEME_SUFFIX := Staging
+else ifeq ($(IOS_ENV),production)
+  IOS_SCHEME_SUFFIX := Production
+else
+  $(error Unknown IOS_ENV '$(IOS_ENV)'. Use: local, development, staging, or production.)
+endif
+
+ifeq ($(IOS_SCHEME_SUFFIX),)
+  IOS_SCHEME := $(IOS_APP)
+else
+  IOS_SCHEME := $(IOS_APP) $(IOS_SCHEME_SUFFIX)
+endif
+
 ios-build:
 	cd $(ROOT)/ios && xcodebuild \
 		-project DailySketch.xcodeproj \
-		-scheme DailySketch \
-		-destination 'platform=iOS Simulator,name=iPhone 16,OS=18.1' \
-		-configuration Debug-Local \
+		-scheme '$(IOS_SCHEME)' \
+		-destination '$(IOS_DESTINATION)' \
+		-configuration $(IOS_CONFIGURATION) \
 		build
 
 ios-test:
 	cd $(ROOT)/ios && xcodebuild \
 		-project DailySketch.xcodeproj \
-		-scheme DailySketch \
-		-destination 'platform=iOS Simulator,name=iPhone 16,OS=18.1' \
-		-configuration Debug-Local \
+		-scheme '$(IOS_SCHEME)' \
+		-destination '$(IOS_DESTINATION)' \
+		-configuration $(IOS_CONFIGURATION) \
 		test
+
+ios-build-local ios-build-development ios-build-staging ios-build-production:
+	$(MAKE) ios-build IOS_ENV=$(subst ios-build-,,$@)
+
+ios-test-local ios-test-development ios-test-staging ios-test-production:
+	$(MAKE) ios-test IOS_ENV=$(subst ios-test-,,$@)
 
 test: backend-test api-validate repo-checks
 

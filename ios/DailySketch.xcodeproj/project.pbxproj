@@ -1828,7 +1828,7 @@
 				25859F1F9B213F6A67E14390 /* Release-Staging */,
 			);
 			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = "Debug-Development";
+			defaultConfigurationName = "Debug-Local";
 		};
 		287A96AF042FD5103845AC01 /* Build configuration list for PBXNativeTarget "DailySketchTests" */ = {
 			isa = XCConfigurationList;
@@ -1839,7 +1839,7 @@
 				4E1D4408B0555E1A1AF08D25 /* Release-Staging */,
 			);
 			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = "Debug-Development";
+			defaultConfigurationName = "Debug-Local";
 		};
 		4A2E1C370F71B046A2FE9DA0 /* Build configuration list for PBXNativeTarget "DailySketchUITests" */ = {
 			isa = XCConfigurationList;
@@ -1850,7 +1850,7 @@
 				80D91B8B0F8F9E8CE5D63146 /* Release-Staging */,
 			);
 			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = "Debug-Development";
+			defaultConfigurationName = "Debug-Local";
 		};
 		5C3CDDF61CB0E53C47EF3248 /* Build configuration list for PBXNativeTarget "DailyStory" */ = {
 			isa = XCConfigurationList;
@@ -1861,7 +1861,7 @@
 				6DA20BD9B157C51071E10C80 /* Release-Staging */,
 			);
 			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = "Debug-Development";
+			defaultConfigurationName = "Debug-Local";
 		};
 		B9BD8F72ABFE6D97B895DAB7 /* Build configuration list for PBXNativeTarget "DailySketch" */ = {
 			isa = XCConfigurationList;
@@ -1872,7 +1872,7 @@
 				103EED884197DDF6B20171F2 /* Release-Staging */,
 			);
 			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = "Debug-Development";
+			defaultConfigurationName = "Debug-Local";
 		};
 /* End XCConfigurationList section */
 

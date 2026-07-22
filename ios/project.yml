@@ -6,6 +6,7 @@ options:
   createIntermediateGroups: true
   developmentLanguage: en
   xcodeVersion: "16.0"
+  defaultConfig: Debug-Local
 settings:
   base:
     SWIFT_VERSION: "6.0"
@@ -213,6 +214,34 @@ schemes:
       config: Release-Staging
     archive:
       config: Release-Staging
+  DailySketch Staging:
+    build:
+      targets:
+        DailySketch: all
+    run:
+      config: Release-Staging
+    test:
+      config: Release-Staging
+    analyze:
+      config: Release-Staging
+    profile:
+      config: Release-Staging
+    archive:
+      config: Release-Staging
+  DailySketch Production:
+    build:
+      targets:
+        DailySketch: all
+    run:
+      config: Release-Production
+    test:
+      config: Release-Production
+    analyze:
+      config: Release-Production
+    profile:
+      config: Release-Production
+    archive:
+      config: Release-Production
   DailyStory:
     build:
       targets:
@@ -241,3 +270,31 @@ schemes:
       config: Release-Staging
     archive:
       config: Release-Staging
+  DailyStory Staging:
+    build:
+      targets:
+        DailyStory: all
+    run:
+      config: Release-Staging
+    test:
+      config: Release-Staging
+    analyze:
+      config: Release-Staging
+    profile:
+      config: Release-Staging
+    archive:
+      config: Release-Staging
+  DailyStory Production:
+    build:
+      targets:
+        DailyStory: all
+    run:
+      config: Release-Production
+    test:
+      config: Release-Production
+    analyze:
+      config: Release-Production
+    profile:
+      config: Release-Production
+    archive:
+      config: Release-Production

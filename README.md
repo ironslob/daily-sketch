@@ -48,8 +48,25 @@ open ios/DailySketch.xcodeproj
 Or build from the CLI:
 
 ```bash
-make ios-build
+make ios-build                              # local (localhost:8000)
+make ios-build IOS_ENV=development          # remote development API
+make ios-build IOS_ENV=staging              # staging API
+make ios-build IOS_ENV=production           # production API
+make ios-build IOS_APP=DailyStory           # Daily Story instead of Daily Sketch
 ```
+
+### iOS build environments
+
+Each environment is defined in `ios/Config/*.xcconfig` and injected into the app at build time via `Info.plist`. Select a scheme in Xcode, or pass `IOS_ENV` to `make ios-build` / `make ios-test`.
+
+| Environment | Xcode scheme | API base URL |
+| --- | --- | --- |
+| Local | DailySketch / DailyStory | `http://localhost:8000` |
+| Development | DailySketch Development / DailyStory Development | `https://api.development.dailysketch.example` |
+| Staging | DailySketch Staging / DailyStory Staging | `https://api.staging.dailysketch.example` |
+| Production | DailySketch Production / DailyStory Production | `https://api.dailysketch.example` |
+
+Remote hostnames and Descope project IDs are placeholders until real values are supplied in the xcconfig files. Non-production builds show an environment badge in the app.
 
 ## Repository layout
 
@@ -206,7 +223,7 @@ make ios-build
 | `make api-check-generated` | Fail if generated client is stale |
 | `make repo-checks` | Spec presence, migration names, large-file policy |
 | `make docker-build` | Build production backend image |
-| `make ios-generate` / `ios-build` / `ios-test` | XcodeGen + simulator |
+| `make ios-generate` / `ios-build` / `ios-test` | XcodeGen + simulator (`IOS_ENV`, `IOS_APP`) |
 | `make clean-local` | Remove Compose volumes and local caches |
 
 ## Local services
