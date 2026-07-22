@@ -136,7 +136,7 @@ jobs:
           xcodebuild \
             -project ios/DailySketch.xcodeproj \
             -scheme DailySketch \
-            -destination 'platform=iOS Simulator,name=iPhone 16,OS=18.1' \
+            -destination 'platform=iOS Simulator,name=iPhone 16,OS=18.6' \
             -configuration Debug-Local \
             CODE_SIGNING_ALLOWED=NO \
             build
@@ -145,7 +145,7 @@ jobs:
           xcodebuild \
             -project ios/DailySketch.xcodeproj \
             -scheme DailyStory \
-            -destination 'platform=iOS Simulator,name=iPhone 16,OS=18.1' \
+            -destination 'platform=iOS Simulator,name=iPhone 16,OS=18.6' \
             -configuration Debug-Local \
             CODE_SIGNING_ALLOWED=NO \
             build
@@ -154,7 +154,7 @@ jobs:
           xcodebuild \
             -project ios/DailySketch.xcodeproj \
             -scheme DailySketch \
-            -destination 'platform=iOS Simulator,name=iPhone 16,OS=18.1' \
+            -destination 'platform=iOS Simulator,name=iPhone 16,OS=18.6' \
             -configuration Debug-Local \
             CODE_SIGNING_ALLOWED=NO \
             -only-testing:DailySketchTests \
