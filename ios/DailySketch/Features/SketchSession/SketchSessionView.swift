@@ -43,7 +43,7 @@ struct SketchSessionView: View {
                 }
 
                 DisclosureGroup {
-                    PromptGroup(
+                    PromptCardStack(
                         words: model.promptWords,
                         accessibilityLabel: model.promptAccessibilityLabel
                     )

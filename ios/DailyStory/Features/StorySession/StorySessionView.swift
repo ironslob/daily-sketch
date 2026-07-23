@@ -15,7 +15,7 @@ struct StorySessionView: View {
                     .multilineTextAlignment(.center)
 
                 if let prompt = model.promptWords {
-                    PromptGroup(
+                    PromptCardStack(
                         words: prompt,
                         accessibilityLabel: "Prompt: \(prompt.joined(separator: ", "))"
                     )

@@ -2,7 +2,7 @@ import SwiftUI
 
 enum PromptCardStackLayout {
     /// Approximate height used by homepage loading skeletons.
-    static let height: CGFloat = 300
+    static let height: CGFloat = 260
     /// How far the bottom row tucks under the top card.
     static let overlap: CGFloat = 28
 }
@@ -44,7 +44,7 @@ struct PromptCardStack: View {
             if displayWords.count > 1 {
                 HStack(spacing: AppSpacing.contentGap) {
                     ForEach(Array(displayWords.dropFirst().enumerated()), id: \.offset) { _, word in
-                        PromptWordCard(word: word, style: .stack)
+                        PromptWordCard(word: word, style: .stack, contentAlignment: .center)
                             .appSoftShadow()
                     }
                 }

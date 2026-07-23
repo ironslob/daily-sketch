@@ -8,7 +8,7 @@ struct PromptWordCard: View {
         case compact
         /// Full-width card when stacking for accessibility sizes.
         case stacked
-        /// Portrait playing-card used in the homepage fan stack.
+        /// Square playing-card used in the homepage prompt stack.
         case stack
     }
 
@@ -16,30 +16,29 @@ struct PromptWordCard: View {
 
     let word: String
     var style: Style = .hero
-    /// Horizontal alignment for icon and word inside the card (fan stack uses L/C/R by index).
+    /// Horizontal alignment for the word inside the card.
     var contentAlignment: HorizontalAlignment = .leading
 
     var body: some View {
-        VStack(alignment: contentAlignment, spacing: AppSpacing.sm) {
-            Image(systemName: PromptWordSymbol.systemName(for: word))
-                .font(.system(size: iconSize, weight: .regular))
-                .foregroundStyle(AppColors.textPrimary.opacity(0.45))
-                .accessibilityHidden(true)
+        let content = Text(word)
+            .font(wordFont)
+            .foregroundStyle(AppColors.textPrimary)
+            .multilineTextAlignment(textAlignment)
+            .lineLimit(2)
+            .minimumScaleFactor(0.75)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: frameAlignment)
+            .padding(cardPadding)
 
-            Spacer(minLength: 0)
-
-            Text(word)
-                .font(wordFont)
-                .foregroundStyle(AppColors.textPrimary)
-                .multilineTextAlignment(textAlignment)
-                .lineLimit(2)
-                .minimumScaleFactor(0.75)
-                .frame(maxWidth: .infinity, alignment: frameAlignment)
+        Group {
+            if style == .stack {
+                content
+                    .frame(width: Self.stackCardWidth, height: Self.stackCardWidth)
+            } else {
+                content
+                    .frame(maxWidth: .infinity, alignment: .topLeading)
+                    .aspectRatio(aspectRatio, contentMode: .fit)
+            }
         }
-        .padding(cardPadding)
-        .frame(maxWidth: style == .stack ? nil : .infinity, alignment: .topLeading)
-        .frame(width: style == .stack ? Self.stackCardWidth : nil)
-        .aspectRatio(aspectRatio, contentMode: .fit)
         .background(AppColors.surfaceElevated)
         .clipShape(RoundedRectangle(cornerRadius: AppRadii.card, style: .continuous))
         .accessibilityLabel(word)
@@ -70,13 +69,6 @@ struct PromptWordCard: View {
         }
     }
 
-    private var iconSize: CGFloat {
-        switch style {
-        case .hero, .stack: 28
-        case .compact, .stacked: 24
-        }
-    }
-
     private var cardPadding: CGFloat {
         switch style {
         case .hero: AppSpacing.cardPadding + 4
@@ -90,37 +82,7 @@ struct PromptWordCard: View {
         case .hero: 2
         case .compact: 1
         case .stacked: 2.4
-        case .stack: 1 / 1.15
-        }
-    }
-}
-
-enum PromptWordSymbol {
-    static func systemName(for word: String) -> String {
-        let key = word.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-        switch key {
-        case "chocolate", "cookie", "cake", "dessert", "candy":
-            return "birthday.cake"
-        case "coffee", "tea", "mug", "espresso":
-            return "cup.and.saucer.fill"
-        case "banana", "apple", "orange", "fruit", "lemon", "berry":
-            return "leaf.fill"
-        case "mirror", "glass", "window":
-            return "circle.lefthalf.filled"
-        case "cat", "dog", "bird", "fish":
-            return "pawprint.fill"
-        case "tree", "forest", "plant", "flower":
-            return "tree.fill"
-        case "sun", "moon", "star", "cloud", "rain":
-            return "sparkles"
-        case "book", "page", "letter":
-            return "book.closed.fill"
-        case "music", "song", "note":
-            return "music.note"
-        case "house", "home", "door":
-            return "house.fill"
-        default:
-            return "sparkles"
+        case .stack: 1
         }
     }
 }
@@ -142,7 +104,7 @@ enum PromptWordSymbol {
 }
 
 #Preview("Stack") {
-    PromptWordCard(word: "Coffee", style: .stack)
+    PromptWordCard(word: "Coffee", style: .stack, contentAlignment: .center)
         .padding()
         .background(AppColors.background)
 }
