@@ -55,7 +55,7 @@ def test_staging_settings_accept_valid_config(monkeypatch: pytest.MonkeyPatch) -
     )
     settings = Settings(_env_file=None)  # type: ignore[call-arg]
     assert settings.app_env == "staging"
-    assert settings.resolved_descope_audience == "P123"
+    assert settings.resolved_descope_audience is None
 
 
 def test_db_ssl_require_uses_unverified_context(monkeypatch: pytest.MonkeyPatch) -> None:

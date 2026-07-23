@@ -45,6 +45,25 @@ final class AppNavigationStore {
         }
     }
 
+    /// Clears auth routes after a successful sign-in/sign-up and routes incomplete
+    /// profiles to profile completion. No-ops when auth did not succeed so the
+    /// auth screen (and its error state) stays visible.
+    func finishAuthenticationFlow(
+        isAuthenticated: Bool,
+        needsProfileCompletion: Bool
+    ) {
+        guard isAuthenticated else { return }
+        profilePath.removeAll {
+            $0 == .authentication(.signUp) || $0 == .authentication(.signIn)
+        }
+        homePath.removeAll {
+            $0 == .authentication(.signUp) || $0 == .authentication(.signIn)
+        }
+        if needsProfileCompletion {
+            presentProfileCompletion(preferHome: resumePublicationAfterProfileCompletion)
+        }
+    }
+
     func dismissProfileCompletion() {
         homePath.removeAll { $0 == .profileCompletion }
         profilePath.removeAll { $0 == .profileCompletion }

@@ -46,7 +46,7 @@ struct AuthenticationView: View {
                         title: "Couldn’t sign in",
                         message: message,
                         onRetry: {
-                            Task { await retryMockAuth() }
+                            Task { await retryAuthentication() }
                         }
                     )
                 }
@@ -90,7 +90,7 @@ struct AuthenticationView: View {
                 .multilineTextAlignment(.center)
 
             PrimaryButton(title: mode == .signUp ? "Create Free Account" : "Sign In") {
-                Task { await retryMockAuth() }
+                Task { await retryAuthentication() }
             }
             .accessibilityLabel(mode == .signUp ? "Create Free Account" : "Sign In")
         }
@@ -135,30 +135,27 @@ struct AuthenticationView: View {
         Bundle.main.object(forInfoDictionaryKey: "DESCOPE_PROJECT_ID") as? String ?? "replace-me"
     }
 
-    private func retryMockAuth() async {
-        guard dependencies.auth.usesMockAuthentication else { return }
-        switch mode {
-        case .signUp:
-            await dependencies.auth.signUp(displayName: displayName)
-        case .signIn:
-            await dependencies.auth.signIn(displayName: displayName)
-        }
-        if dependencies.auth.isAuthenticated {
+    private func retryAuthentication() async {
+        if dependencies.auth.usesMockAuthentication {
+            switch mode {
+            case .signUp:
+                await dependencies.auth.signUp(displayName: displayName)
+            case .signIn:
+                await dependencies.auth.signIn(displayName: displayName)
+            }
             finishAuthenticatedNavigation()
+            return
         }
+        await dependencies.auth.signOut()
+        descopeFlowError = nil
+        descopeFlowEpoch += 1
     }
 
     private func finishAuthenticatedNavigation() {
-        dependencies.navigation.profilePath.removeAll {
-            $0 == .authentication(.signUp) || $0 == .authentication(.signIn)
-        }
-        dependencies.navigation.homePath.removeAll {
-            $0 == .authentication(.signUp) || $0 == .authentication(.signIn)
-        }
-        if dependencies.auth.needsProfileCompletion {
-            let preferHome = dependencies.navigation.resumePublicationAfterProfileCompletion
-            dependencies.navigation.presentProfileCompletion(preferHome: preferHome)
-        }
+        dependencies.navigation.finishAuthenticationFlow(
+            isAuthenticated: dependencies.auth.isAuthenticated,
+            needsProfileCompletion: dependencies.auth.needsProfileCompletion
+        )
     }
 }
 

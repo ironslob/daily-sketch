@@ -96,7 +96,7 @@ variable "descope_project_id" {
 }
 
 variable "descope_audience" {
-  description = "Optional JWT audience override. Defaults to descope_project_id when unset."
+  description = "Optional JWT audience. Only set when Descope JWT templates include a custom aud claim; leave empty otherwise."
   type        = string
   default     = ""
 }

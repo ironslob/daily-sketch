@@ -77,6 +77,46 @@ final class ReminderNavigationTests: XCTestCase {
         XCTAssertEqual(navigation.selectedTab, .home)
         XCTAssertTrue(navigation.homePath.isEmpty)
     }
+
+    func testFinishAuthenticationFlowKeepsAuthRouteWhenUnauthenticated() {
+        let navigation = AppNavigationStore()
+        navigation.selectedTab = .profile
+        navigation.profilePath = [.authentication(.signUp)]
+
+        navigation.finishAuthenticationFlow(
+            isAuthenticated: false,
+            needsProfileCompletion: false
+        )
+
+        XCTAssertEqual(navigation.profilePath, [.authentication(.signUp)])
+        XCTAssertFalse(navigation.profilePath.contains(.profileCompletion))
+    }
+
+    func testFinishAuthenticationFlowPresentsProfileCompletionAfterSignup() {
+        let navigation = AppNavigationStore()
+        navigation.selectedTab = .profile
+        navigation.profilePath = [.authentication(.signUp)]
+
+        navigation.finishAuthenticationFlow(
+            isAuthenticated: true,
+            needsProfileCompletion: true
+        )
+
+        XCTAssertEqual(navigation.selectedTab, .profile)
+        XCTAssertEqual(navigation.profilePath, [.profileCompletion])
+    }
+
+    func testFinishAuthenticationFlowPopsAuthWhenProfileAlreadyComplete() {
+        let navigation = AppNavigationStore()
+        navigation.profilePath = [.authentication(.signIn)]
+
+        navigation.finishAuthenticationFlow(
+            isAuthenticated: true,
+            needsProfileCompletion: false
+        )
+
+        XCTAssertTrue(navigation.profilePath.isEmpty)
+    }
 }
 
 final class AnalyticsClientTests: XCTestCase {

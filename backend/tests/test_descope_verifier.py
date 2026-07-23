@@ -33,7 +33,7 @@ def test_descope_verifier_accepts_valid_session(settings: Settings) -> None:
     assert verified.display_name == "Ada"
     client.validate_session.assert_called_once_with(
         session_token="session-jwt",
-        audience="P123",
+        audience=None,
     )
 
 

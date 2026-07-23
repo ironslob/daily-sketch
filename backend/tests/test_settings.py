@@ -49,9 +49,9 @@ def test_settings_reject_invalid_log_level(monkeypatch: pytest.MonkeyPatch) -> N
         Settings(_env_file=None)  # type: ignore[call-arg]
 
 
-def test_settings_resolved_descope_audience_defaults_to_project_id() -> None:
+def test_settings_resolved_descope_audience_defaults_to_none() -> None:
     settings = Settings(_env_file=None)  # type: ignore[call-arg]
-    assert settings.resolved_descope_audience == settings.descope_project_id
+    assert settings.resolved_descope_audience is None
 
 
 def test_settings_descope_audience_override(monkeypatch: pytest.MonkeyPatch) -> None:

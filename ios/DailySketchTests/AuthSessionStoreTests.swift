@@ -105,6 +105,61 @@ final class AuthSessionStoreTests: XCTestCase {
         XCTAssertEqual(second.currentUser?.displayName, "Persisted")
     }
 
+    func testApplyExternalSessionSuccessMarksAuthenticatedAndNeedsProfileCompletion() async throws {
+        let meFetcher = RecordingMeFetcher(
+            profile: CurrentUserProfile(
+                id: UUID(),
+                username: nil,
+                displayName: "New User",
+                profileCompleted: false,
+                status: "incomplete"
+            )
+        )
+        let store = AuthSessionStore(authService: MockAuthService(), meFetcher: meFetcher)
+        let token = try MockAuthService.mintToken(subject: "descope|user", name: "New User")
+        let session = AuthSession(
+            accessToken: token,
+            subject: "descope|user",
+            displayName: "New User"
+        )
+
+        await store.applyExternalSession(session)
+
+        XCTAssertTrue(store.isAuthenticated)
+        XCTAssertTrue(store.needsProfileCompletion)
+        XCTAssertEqual(store.currentUser?.displayName, "New User")
+    }
+
+    func testApplyExternalSessionFailureLeavesFailedStateWithoutAuthenticating() async throws {
+        let meFetcher = RecordingMeFetcher(
+            profile: CurrentUserProfile(
+                id: UUID(),
+                username: nil,
+                displayName: "New User",
+                profileCompleted: false,
+                status: "incomplete"
+            )
+        )
+        meFetcher.error = ProfileAPIError.underlying("API unreachable")
+        let store = AuthSessionStore(authService: MockAuthService(), meFetcher: meFetcher)
+        let token = try MockAuthService.mintToken(subject: "descope|user", name: "New User")
+        let session = AuthSession(
+            accessToken: token,
+            subject: "descope|user",
+            displayName: "New User"
+        )
+
+        await store.applyExternalSession(session)
+
+        XCTAssertFalse(store.isAuthenticated)
+        XCTAssertFalse(store.needsProfileCompletion)
+        if case .failed(let message) = store.state {
+            XCTAssertTrue(message.contains("API unreachable"))
+        } else {
+            XCTFail("Expected failed state when provisioning fails")
+        }
+    }
+
     private func makeStore() -> AuthSessionStore {
         AuthSessionStore(
             authService: MockAuthService(),

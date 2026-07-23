@@ -99,7 +99,8 @@ class Settings(BaseSettings):
     reflection_max_length: int = Field(default=500, alias="REFLECTION_MAX_LENGTH")
 
     descope_project_id: str = Field(default="replace-me", alias="DESCOPE_PROJECT_ID")
-    # Optional JWT audience override (JWT templates). Defaults to DESCOPE_PROJECT_ID.
+    # Optional JWT audience. Only set when Descope JWT templates include a custom aud claim.
+    # Leave unset for default Descope session tokens (which omit aud).
     descope_audience: str | None = Field(default=None, alias="DESCOPE_AUDIENCE")
     moderation_operator_token: str | None = Field(
         default=None,
@@ -222,11 +223,16 @@ class Settings(BaseSettings):
         return self.app_env in {"staging", "production"}
 
     @property
-    def resolved_descope_audience(self) -> str:
-        """Audience passed to Descope session validation (project ID unless overridden)."""
+    def resolved_descope_audience(self) -> str | None:
+        """Audience for Descope session validation, or None to skip aud checks.
+
+        Default Descope session JWTs omit ``aud``. Passing a required audience in
+        that case raises MissingRequiredClaimError. Only set DESCOPE_AUDIENCE when
+        JWT templates intentionally include an audience claim.
+        """
         if self.descope_audience and self.descope_audience.strip():
             return self.descope_audience.strip()
-        return self.descope_project_id
+        return None
 
     @property
     def allowed_image_content_type_set(self) -> frozenset[str]:
