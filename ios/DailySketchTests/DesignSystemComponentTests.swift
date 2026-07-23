@@ -65,32 +65,8 @@ final class DesignSystemComponentTests: XCTestCase {
         XCTAssertEqual(AppShadows.yOffset, 8)
     }
 
-    func testPromptCardFanGeometryRestingSpreadsSideCards() {
-        let left = PromptCardFanGeometry.transform(index: 0, phase: .resting)
-        let center = PromptCardFanGeometry.transform(index: 1, phase: .resting)
-        let right = PromptCardFanGeometry.transform(index: 2, phase: .resting)
-
-        XCTAssertLessThan(left.rotation, 0)
-        XCTAssertEqual(center.rotation, 0)
-        XCTAssertGreaterThan(right.rotation, 0)
-        XCTAssertLessThan(left.xOffset, 0)
-        XCTAssertEqual(center.xOffset, 0)
-        XCTAssertGreaterThan(right.xOffset, 0)
-        XCTAssertEqual(center.zIndex, 3)
-    }
-
-    func testPromptCardFanGeometryFannedOutSpreadsFurtherThanResting() {
-        let restingLeft = PromptCardFanGeometry.transform(index: 0, phase: .resting)
-        let fannedLeft = PromptCardFanGeometry.transform(index: 0, phase: .fannedOut)
-
-        XCTAssertLessThan(fannedLeft.rotation, restingLeft.rotation)
-        XCTAssertLessThan(fannedLeft.xOffset, restingLeft.xOffset)
-    }
-
-    func testPromptCardFanGeometryStackedCardsOverlap() {
-        let stacked = PromptCardFanGeometry.transform(index: 1, phase: .stacked)
-
-        XCTAssertEqual(stacked.rotation, 0)
-        XCTAssertEqual(stacked.xOffset, 0)
+    func testPromptCardStackLayoutUsesOverlapUnderTopCard() {
+        XCTAssertGreaterThan(PromptCardStackLayout.overlap, 0)
+        XCTAssertGreaterThan(PromptCardStackLayout.height, PromptCardStackLayout.overlap)
     }
 }

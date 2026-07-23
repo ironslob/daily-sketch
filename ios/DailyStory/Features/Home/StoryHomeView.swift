@@ -251,7 +251,7 @@ struct StoryHomeView: View {
     private func promptSection(_ model: StoryHomeViewModel) -> some View {
         switch model.promptState {
         case .loading:
-            LoadingSkeleton(height: PromptCardFanGeometry.stackHeight)
+            LoadingSkeleton(height: PromptCardStackLayout.height)
                 .accessibilityLabel("Loading today’s prompt")
         case .loaded(let prompt):
             PromptCardStack(words: prompt.words, accessibilityLabel: prompt.accessibilityLabel)
