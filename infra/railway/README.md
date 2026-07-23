@@ -29,7 +29,7 @@ Railway hosts a **shared remote test** backend for Daily Creative. It is not pro
 
 5. **Release command** (migrations): `alembic upgrade head` — runs on each deploy before traffic shifts (see `releaseCommand` in `railway.toml`).
 
-6. **Start command**: `sh -c 'uvicorn … --port $PORT'` (Railway sets `PORT`; command must run under a shell so it expands).
+6. **Start command:** leave unset in the dashboard — the image runs `scripts/start.sh`, which binds to `$PORT` (Railway) or `8000` (local).
 
 ## Environment variables
 

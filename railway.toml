@@ -4,13 +4,15 @@
 # - Root Directory: /backend (Docker build context)
 # - Config as Code: /railway.toml (absolute from repo; does not follow Root Directory)
 # - Use "Deploy Latest Commit" (not Redeploy) after config changes
+# - Clear any custom Start Command in the dashboard so the image CMD is used
 [build]
 builder = "DOCKERFILE"
 dockerfilePath = "Dockerfile"
 watchPatterns = ["backend/**", "railway.toml"]
 
 [deploy]
-startCommand = "sh -c 'uvicorn app.main:app --host 0.0.0.0 --port $PORT'"
+# Explicit script so any dashboard Start Command is overridden; PORT expands inside the script.
+startCommand = "./scripts/start.sh"
 healthcheckPath = "/health/live"
 healthcheckTimeout = 120
 restartPolicyType = "ON_FAILURE"
