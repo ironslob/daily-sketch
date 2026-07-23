@@ -63,6 +63,15 @@ enum PromptCardFanGeometry {
             PromptCardFanTransform(rotation: 0, xOffset: 0, zIndex: 0)
         }
     }
+
+    static func contentAlignment(for index: Int) -> HorizontalAlignment {
+        switch index {
+        case 0: .leading
+        case 1: .center
+        case 2: .trailing
+        default: .leading
+        }
+    }
 }
 
 struct PromptCardStack: View {
@@ -107,7 +116,11 @@ struct PromptCardStack: View {
             ForEach(Array(displayWords.enumerated()), id: \.offset) { index, word in
                 let transform = PromptCardFanGeometry.transform(index: index, phase: fanPhase)
 
-                PromptWordCard(word: word, style: .stack)
+                PromptWordCard(
+                    word: word,
+                    style: .stack,
+                    contentAlignment: PromptCardFanGeometry.contentAlignment(for: index)
+                )
                     .rotationEffect(.degrees(transform.rotation), anchor: .bottom)
                     .offset(x: transform.xOffset)
                     .zIndex(transform.zIndex)
@@ -187,7 +200,11 @@ private struct PromptCardStackPreview: View {
             ForEach(Array(["Chocolate", "Coffee", "Banana"].enumerated()), id: \.offset) { index, word in
                 let transform = PromptCardFanGeometry.transform(index: index, phase: phase)
 
-                PromptWordCard(word: word, style: .stack)
+                PromptWordCard(
+                    word: word,
+                    style: .stack,
+                    contentAlignment: PromptCardFanGeometry.contentAlignment(for: index)
+                )
                     .rotationEffect(.degrees(transform.rotation), anchor: .bottom)
                     .offset(x: transform.xOffset)
                     .zIndex(transform.zIndex)

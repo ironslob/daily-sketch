@@ -16,9 +16,11 @@ struct PromptWordCard: View {
 
     let word: String
     var style: Style = .hero
+    /// Horizontal alignment for icon and word inside the card (fan stack uses L/C/R by index).
+    var contentAlignment: HorizontalAlignment = .leading
 
     var body: some View {
-        VStack(alignment: .leading, spacing: AppSpacing.sm) {
+        VStack(alignment: contentAlignment, spacing: AppSpacing.sm) {
             Image(systemName: PromptWordSymbol.systemName(for: word))
                 .font(.system(size: iconSize, weight: .regular))
                 .foregroundStyle(AppColors.textPrimary.opacity(0.45))
@@ -29,9 +31,10 @@ struct PromptWordCard: View {
             Text(word)
                 .font(wordFont)
                 .foregroundStyle(AppColors.textPrimary)
+                .multilineTextAlignment(textAlignment)
                 .lineLimit(2)
                 .minimumScaleFactor(0.75)
-                .frame(maxWidth: .infinity, alignment: .leading)
+                .frame(maxWidth: .infinity, alignment: frameAlignment)
         }
         .padding(cardPadding)
         .frame(maxWidth: style == .stack ? nil : .infinity, alignment: .topLeading)
@@ -40,6 +43,22 @@ struct PromptWordCard: View {
         .background(AppColors.surfaceElevated)
         .clipShape(RoundedRectangle(cornerRadius: AppRadii.card, style: .continuous))
         .accessibilityLabel(word)
+    }
+
+    private var textAlignment: TextAlignment {
+        switch contentAlignment {
+        case .center: .center
+        case .trailing: .trailing
+        default: .leading
+        }
+    }
+
+    private var frameAlignment: Alignment {
+        switch contentAlignment {
+        case .center: .center
+        case .trailing: .trailing
+        default: .leading
+        }
     }
 
     private var wordFont: Font {
