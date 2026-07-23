@@ -44,5 +44,9 @@ fi
 rev_id="$(printf '%04d_%s' "${next}" "${SLUG}")"
 echo "Generating ${rev_id} ..."
 cd "${ROOT}"
-alembic revision --autogenerate -m "${MESSAGE}" --rev-id "${rev_id}"
+if command -v uv >/dev/null 2>&1; then
+  uv run alembic revision --autogenerate -m "${MESSAGE}" --rev-id "${rev_id}"
+else
+  alembic revision --autogenerate -m "${MESSAGE}" --rev-id "${rev_id}"
+fi
 echo "Review ${VERSIONS}/${rev_id}.py before applying (make db-migrate)."

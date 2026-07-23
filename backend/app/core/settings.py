@@ -1,6 +1,9 @@
 """Application settings loaded from environment variables."""
 
+from __future__ import annotations
+
 from functools import lru_cache
+from typing import Self
 
 from pydantic import Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -169,7 +172,7 @@ class Settings(BaseSettings):
         return upper
 
     @model_validator(mode="after")
-    def validate_remote_environment(self) -> Settings:
+    def validate_remote_environment(self) -> Self:
         if self.app_env not in {"staging", "production"}:
             return self
 

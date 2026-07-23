@@ -27,7 +27,7 @@ Railway hosts a **shared remote test** backend for Daily Creative. It is not pro
    - `dockerfilePath = "Dockerfile"` (relative to Root Directory `/backend`)
    - Build context is Root Directory (`/backend`), same as local `docker compose` (`context: ./backend`)
 
-5. **Release command** (migrations): `alembic upgrade head` — runs on each deploy before traffic shifts (see `releaseCommand` in `railway.toml`).
+5. **Release command** (migrations): `alembic upgrade head` — runs on each deploy before traffic shifts (see `releaseCommand` in `railway.toml`). In the production image Alembic is on `PATH`; for local one-offs always use `uv run` (see below).
 
 6. **Start command:** leave unset in the dashboard — the image runs `scripts/start.sh`, which binds to `$PORT` (Railway) or `8000` (local).
 
@@ -85,24 +85,24 @@ Railway does not run the Makefile job targets natively. Options:
 1. **Railway cron service** (if available on your plan) — duplicate the backend service with a cron schedule and start command, e.g.:
 
    ```bash
-   python -m app.jobs.upload_cleanup
+   uv run python -m app.jobs.upload_cleanup
    ```
 
 2. **GitHub Actions** — scheduled workflow calling Railway run or a one-off `railway run` from CI.
 
-3. **Manual** — `railway run python -m app.jobs.upload_cleanup` for ad-hoc runs.
+3. **Manual** — from `backend/`: `railway run uv run python -m app.jobs.upload_cleanup` for ad-hoc runs.
 
 ### Job commands (from repo `Makefile`)
 
 | Job | Command |
 |-----|---------|
-| upload_cleanup | `python -m app.jobs.upload_cleanup` |
-| sketch_session_cleanup | `python -m app.jobs.sketch_session_cleanup` |
-| story_session_cleanup | `python -m app.jobs.story_session_cleanup` |
-| idempotency_cleanup | `python -m app.jobs.idempotency_cleanup` |
-| deleted_media_cleanup | `python -m app.jobs.deleted_media_cleanup` |
-| missing_prompt_check | `python -m app.jobs.missing_prompt_check` |
-| account_deletion_finalize | `python -m app.jobs.account_deletion` |
+| upload_cleanup | `uv run python -m app.jobs.upload_cleanup` |
+| sketch_session_cleanup | `uv run python -m app.jobs.sketch_session_cleanup` |
+| story_session_cleanup | `uv run python -m app.jobs.story_session_cleanup` |
+| idempotency_cleanup | `uv run python -m app.jobs.idempotency_cleanup` |
+| deleted_media_cleanup | `uv run python -m app.jobs.deleted_media_cleanup` |
+| missing_prompt_check | `uv run python -m app.jobs.missing_prompt_check` |
+| account_deletion_finalize | `uv run python -m app.jobs.account_deletion` |
 
 Suggested schedules match Terraform EventBridge defaults (hourly/daily). Add `--dry-run` when testing.
 
@@ -113,7 +113,13 @@ Suggested schedules match Terraform EventBridge defaults (hourly/daily). Add `--
 3. S3 bucket + IAM keys configured
 4. Deploy triggers `alembic upgrade head`
 5. Smoke: `curl -fsS $API_PUBLIC_URL/health/live`
-6. Seed prompts if needed: `railway run python -m app.seeds.prompts --days 30`
+6. Seed prompts if needed (from `backend/`): `railway run uv run python -m app.seeds.prompts --days 30`
+
+One-off migrations from your laptop (also from `backend/`):
+
+```bash
+railway run uv run alembic upgrade head
+```
 
 ## Related docs
 

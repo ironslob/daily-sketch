@@ -8,7 +8,7 @@ FastAPI application for Daily Sketch. See the repository root README for local s
 - **Service rules:** Only `published` prompts are returned. `GET /prompts/today` ensures a published row for the UTC Prompt Date (deterministic on-demand create under a transaction-scoped advisory lock). Existing draft/withdrawn rows are not overwritten (`404 prompt_not_found`). Missing id → `404 prompt_not_found`. Feed returns `{ "items": [], "next_cursor": null }` until Submissions exist.
 - **Clock:** `PromptService` uses injectable `Clock.today()` (UTC calendar date).
 - **Jobs:** `missing_prompt_check` ensures published prompts for today and tomorrow via the same helper (dry-run checks only).
-- **Seed:** `make seed` / `python -m app.seeds.prompts` upserts deterministic three-word prompts for bulk future coverage (same generator as on-demand). `python -m app.seeds.safety` seeds sample block relationships and open reports for local testing.
+- **Seed:** `make seed` / `uv run python -m app.seeds.prompts` upserts deterministic three-word prompts for bulk future coverage (same generator as on-demand). `uv run python -m app.seeds.safety` seeds sample block relationships and open reports for local testing.
 
 ## Phase 11 — Safety
 

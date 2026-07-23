@@ -15,11 +15,11 @@ COMPOSE := docker compose -f $(ROOT)/docker-compose.yml -f $(ROOT)/docker-compos
 STAGING_COMPOSE := docker compose -f $(ROOT)/docker-compose.yml -f $(ROOT)/docker-compose.staging.yml
 PROD_COMPOSE := docker compose -f $(ROOT)/docker-compose.yml
 
-# Prefer host .venv when present (CI / optional native tooling); otherwise use the Compose backend.
+# Prefer uv for host tooling; otherwise use the Compose backend container.
 # Usage: $(call run_backend,pytest -q)  — command may include && ; run via bash -c.
 define run_backend
-	@if [ -x "$(BACKEND)/.venv/bin/python" ]; then \
-		cd $(BACKEND) && . .venv/bin/activate && bash -c '$(1)'; \
+	@if command -v uv >/dev/null 2>&1; then \
+		cd $(BACKEND) && uv run bash -c '$(1)'; \
 	else \
 		$(COMPOSE) exec -T backend bash -c '$(1)'; \
 	fi
@@ -59,7 +59,7 @@ backend-install:
 	cd $(BACKEND) && uv venv .venv --python 3.14 && uv pip install -e ".[dev]"
 
 backend-run:
-	cd $(BACKEND) && . .venv/bin/activate && uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+	cd $(BACKEND) && uv run uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 
 backend-shell:
 	$(COMPOSE) exec backend bash

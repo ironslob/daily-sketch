@@ -1,0 +1,34 @@
+---
+description: Always use uv for backend Python tooling
+globs: backend/**/*
+alwaysApply: false
+---
+
+# Backend Python: use uv
+
+Always run backend Python tools through `uv` from `backend/`. Never invoke system `python`, `alembic`, `pytest`, `ruff`, or `mypy` directly on the host.
+
+## Preferred
+
+```bash
+cd backend
+uv run alembic upgrade head
+uv run pytest -q
+uv run ruff check app tests
+uv run python -m app.seeds.prompts --days 30
+```
+
+With Railway env injected:
+
+```bash
+cd backend
+railway run uv run alembic upgrade head
+railway run uv run python -m app.seeds.prompts --days 30
+```
+
+Make targets (`make db-migrate`, `make seed`, etc.) already go through `uv run`.
+
+## Exceptions
+
+- Production/runtime Docker image (`backend/Dockerfile`): packages are installed on `PATH`; `railway.toml` `releaseCommand` may call `alembic` directly inside the container.
+- Dev Compose image already uses `uv` (`Dockerfile.dev` / `dev-entrypoint.sh`).
